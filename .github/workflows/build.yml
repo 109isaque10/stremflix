@@ -3,6 +3,7 @@
 name: Android CI - Build APKs
 
 on:
+  workflow_dispatch:
   pull_request:
     # validate all pull requests
     types: [opened, synchronize, reopened]
