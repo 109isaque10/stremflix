@@ -1,0 +1,78 @@
+# Android build workflow: assembles debug and release APKs and uploads them as artifacts.
+# Triggers: pull_request (for PR validation) and push to main (for direct runs).
+name: Android CI - Build APKs
+
+on:
+  pull_request:
+    # validate all pull requests
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build debug & release APKs
+    runs-on: ubuntu-latest
+    env:
+      # reduce Gradle memory issues on CI
+      JAVA_TOOL_OPTIONS: -Xmx2g
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          # Hash common Gradle/Wrapper files so cache updates when build scripts change
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'gradle.properties', 'settings.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Ensure Gradle wrapper is executable
+        run: chmod +x ./gradlew
+
+      # Optional: decode base64 keystore and write key.properties for Gradle signing
+      # Provide these secrets in repository settings if you want CI to sign release builds:
+      # ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+      - name: Prepare Android keystore (if provided)
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "Decoding ANDROID_KEYSTORE_BASE64 to release-keystore.jks"
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > release-keystore.jks
+          echo "Writing key.properties for Gradle signingConfig"
+          cat > key.properties <<EOF
+          storeFile=release-keystore.jks
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Build debug and release APKs
+        run: ./gradlew assembleDebug assembleRelease --no-daemon --stacktrace
+
+      - name: Upload debug APK(s)
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk
+          # common debug APK locations; if not present the step will warn instead of failing
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
+
+      - name: Upload release APK(s)
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          # common release APK locations; if not present the step will warn instead of failing
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: warn
