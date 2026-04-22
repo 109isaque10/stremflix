@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -394,8 +395,13 @@ class MobileRootViewModel @Inject constructor(
     }
 
     suspend fun loadDetail(item: MediaItem) {
-        _episodes.value = if (item.type == MediaType.SHOW) metadataRepository.episodes(item.tmdbId, 1) else emptyList()
-        _cast.value = metadataRepository.cast(item.tmdbId, item.type)
+        runCatching {
+            _episodes.value = if (item.type == MediaType.SHOW) metadataRepository.episodes(item.tmdbId, 1) else emptyList()
+            _cast.value = metadataRepository.cast(item.tmdbId, item.type)
+        }.onFailure {
+            _episodes.value = emptyList()
+            _cast.value = emptyList()
+        }
     }
 
     fun toggleMyList(item: MediaItem) {

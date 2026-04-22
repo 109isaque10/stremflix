@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -207,6 +208,10 @@ private fun TvRow(title: String, items: List<MediaItem>, onFocus: (Int) -> Unit)
                     .clip(RoundedCornerShape(10.dp))
                     .border(if (focused) 2.dp else 0.dp, Color.White, RoundedCornerShape(10.dp))
                     .scale(if (focused) 1.06f else 1f)
+                    .onFocusChanged { state ->
+                        focused = state.isFocused
+                        if (state.isFocused) onFocus(idx)
+                    }
                     .focusable()
                     .clickable { onFocus(idx) }
             ) {
@@ -217,7 +222,6 @@ private fun TvRow(title: String, items: List<MediaItem>, onFocus: (Int) -> Unit)
                     modifier = Modifier.fillMaxSize()
                 )
             }
-            LaunchedEffect(Unit) { focused = true; onFocus(idx) }
         }
     }
 }
