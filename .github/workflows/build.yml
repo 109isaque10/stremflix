@@ -45,20 +45,13 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          # Use step env vars (populated from secrets) inside the script.
           if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
             echo "ANDROID_KEYSTORE_BASE64 is set — creating release-keystore.jks and key.properties"
-            # Decode base64 keystore (ensure secret is a single-line base64 string)
             printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > release-keystore.jks
-            # Write key.properties for Gradle signingConfig
-            cat > key.properties <<EOF
-storeFile=release-keystore.jks
-storePassword=${ANDROID_KEYSTORE_PASSWORD}
-keyAlias=${ANDROID_KEY_ALIAS}
-keyPassword=${ANDROID_KEY_PASSWORD}
-EOF
-            # Confirm file was created (do not print secret contents)
-            ls -l release-keystore.jks || true
+            # Write key.properties using printf (avoids heredoc/yaml parsing issues)
+            printf 'storeFile=release-keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+              "$ANDROID_KEYSTORE_PASSWORD" "$ANDROID_KEY_ALIAS" "$ANDROID_KEY_PASSWORD" > key.properties
+            ls -l release-keystore.jks key.properties || true
           else
             echo "ANDROID_KEYSTORE_BASE64 not set; release APK will be unsigned (or built with existing local config)."
           fi
@@ -78,4 +71,4 @@ EOF
         with:
           name: release-apk
           path: app/build/outputs/apk/release/*.apk
-          if-no-files-found: warn 
+          if-no-files-found: warn
