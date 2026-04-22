@@ -1,4 +1,3 @@
-# Android build workflow: assembles debug and release APKs and uploads them as artifacts.
 name: Android CI - Build APKs
 
 on:
@@ -39,19 +38,24 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Prepare Android keystore (decode and write key.properties if secrets provided)
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          # Check presence of the base64 keystore secret at runtime (secrets cannot be used directly in if: expressions)
-          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+          # Use step env vars (populated from secrets) inside the script.
+          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
             echo "ANDROID_KEYSTORE_BASE64 is set — creating release-keystore.jks and key.properties"
-            # Decode base64 keystore (ensure the secret is a single-line base64 string)
-            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > release-keystore.jks
-            # Write key.properties for Gradle signingConfig (expand secrets here)
+            # Decode base64 keystore (ensure secret is a single-line base64 string)
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > release-keystore.jks
+            # Write key.properties for Gradle signingConfig
             cat > key.properties <<EOF
 storeFile=release-keystore.jks
-storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+storePassword=${ANDROID_KEYSTORE_PASSWORD}
+keyAlias=${ANDROID_KEY_ALIAS}
+keyPassword=${ANDROID_KEY_PASSWORD}
 EOF
             # Confirm file was created (do not print secret contents)
             ls -l release-keystore.jks || true
@@ -74,4 +78,4 @@ EOF
         with:
           name: release-apk
           path: app/build/outputs/apk/release/*.apk
-          if-no-files-found: warn
+          if-no-files-found: warn 
