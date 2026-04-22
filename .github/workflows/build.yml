@@ -23,18 +23,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Cache Gradle
-        uses: actions/cache@v3
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+          gradle-version: '8.7'          # or specify your required version
+          cache-read-only: false
 
       # Optional: Set up signing for release builds if secrets are provided
       - name: Decode Keystore for Release
@@ -45,10 +38,10 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 --decode > keystore.jks
 
       - name: Build Debug APKs
-        run: ./gradlew :app:assembleDebug :tv:assembleDebug
+        run: gradle :app:assembleDebug :tv:assembleDebug
 
       - name: Build Release APKs
-        run: ./gradlew :app:assembleRelease :tv:assembleRelease
+        run: gradle :app:assembleRelease :tv:assembleRelease
         env:
           # Pass signing configuration to Gradle (adjust property names to match your build.gradle)
           ORG_GRADLE_PROJECT_SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
