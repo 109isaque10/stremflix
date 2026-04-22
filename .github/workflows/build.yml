@@ -47,9 +47,9 @@ jobs:
       # Provide these secrets in repository settings if you want CI to sign release builds:
       # ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
       - name: Prepare Android keystore (if provided)
-        with:
+        env:
           base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        if: ${{ $base64 != '' }}
+        if: ${{ "$base64" != '' }}
         run: |
           echo "Decoding ANDROID_KEYSTORE_BASE64 to release-keystore.jks"
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > release-keystore.jks
