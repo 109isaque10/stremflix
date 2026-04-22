@@ -3,9 +3,7 @@
 name: Android CI - Build APKs
 
 on:
-  workflow_dispatch:
   pull_request:
-    # validate all pull requests
     types: [opened, synchronize, reopened]
   push:
     branches:
@@ -16,7 +14,6 @@ jobs:
     name: Build debug & release APKs
     runs-on: ubuntu-latest
     env:
-      # reduce Gradle memory issues on CI
       JAVA_TOOL_OPTIONS: -Xmx2g
 
     steps:
@@ -35,7 +32,6 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          # Hash common Gradle/Wrapper files so cache updates when build scripts change
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'gradle.properties', 'settings.gradle*') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
@@ -43,23 +39,27 @@ jobs:
       - name: Ensure Gradle wrapper is executable
         run: chmod +x ./gradlew
 
-      # Optional: decode base64 keystore and write key.properties for Gradle signing
-      # Provide these secrets in repository settings if you want CI to sign release builds:
-      # ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
-      - name: Prepare Android keystore (if provided)
-        env:
-          base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        if: $base64 != ''
+      # Prepare keystore at runtime (safe to reference secrets inside run)
+      - name: Prepare Android keystore (decode and write key.properties if secrets provided)
         run: |
-          echo "Decoding ANDROID_KEYSTORE_BASE64 to release-keystore.jks"
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > release-keystore.jks
-          echo "Writing key.properties for Gradle signingConfig"
-          cat > key.properties <<EOF
-          storeFile=release-keystore.jks
-          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          EOF
+          set -euo pipefail
+          # secrets must be a single-line base64 string for the keystore
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "ANDROID_KEYSTORE_BASE64 is set — creating release-keystore.jks and key.properties"
+            # Decode base64 keystore
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > release-keystore.jks
+            # Create key.properties for Gradle signingConfig
+            cat > key.properties <<EOF
+storeFile=release-keystore.jks
+storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+EOF
+            # Print a short confirmation (do not print secret values)
+            ls -l release-keystore.jks || true
+          else
+            echo "ANDROID_KEYSTORE_BASE64 not set; release APK will be unsigned (or built with existing local config)."
+          fi
 
       - name: Build debug and release APKs
         run: ./gradlew assembleDebug assembleRelease --no-daemon --stacktrace
@@ -68,7 +68,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk
-          # common debug APK locations; if not present the step will warn instead of failing
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
 
@@ -76,6 +75,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
-          # common release APK locations; if not present the step will warn instead of failing
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
