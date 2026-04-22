@@ -1,6 +1,6 @@
 # Android build workflow: assembles debug and release APKs and uploads them as artifacts.
 # Triggers: pull_request (for PR validation) and push to main (for direct runs).
-name: Android CI - Build APKs
+name: Android CI - Build APKs 
 
 on:
   pull_request:
