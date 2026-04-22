@@ -389,7 +389,7 @@ class MobileRootViewModel @Inject constructor(
     }
 
     fun play(item: MediaItem) {
-        // playback is launched from detail by selecting first resolved stream in production.
+        // Playback is launched from detail by selecting first resolved stream in production.
     }
 
     fun loadDetail(item: MediaItem) {
@@ -405,7 +405,7 @@ class MobileRootViewModel @Inject constructor(
     }
 
     fun toggleMyList(item: MediaItem) {
-        // backed by Trakt/custom lists in production builds.
+        // Backed by Trakt/custom lists in production builds.
     }
 
     fun saveKeys(tmdb: String, trakt: String, stremio: String) {

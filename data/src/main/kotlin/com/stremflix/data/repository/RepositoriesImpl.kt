@@ -73,7 +73,8 @@ class MetadataRepositoryImpl(
 
     /**
      * Temporary fallback while TMDB season details endpoint wiring is pending.
-     * Returns mock episodes to keep the UI functional.
+     * Returns a fixed-length mock list so episode UIs remain usable in debug
+     * builds instead of failing hard with empty/null states.
      */
     override suspend fun episodes(tmdbId: Int, season: Int): List<Episode> = List(8) {
         // TODO replace with TMDB season details endpoint wiring.

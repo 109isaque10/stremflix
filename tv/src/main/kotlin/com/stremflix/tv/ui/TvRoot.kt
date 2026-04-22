@@ -266,7 +266,7 @@ class TvViewModel @Inject constructor(
     private val _trailerUrl = MutableStateFlow<String?>(null)
     val trailerUrl = _trailerUrl.asStateFlow()
 
-    private val autoplayTimeoutSec = 5
+    private val autoplayTimeoutSeconds = 5
 
     init {
         viewModelScope.launch {
@@ -282,7 +282,7 @@ class TvViewModel @Inject constructor(
         _trailerUrl.value = null
         val item = _media.value.getOrNull(index) ?: return
         viewModelScope.launch {
-            delay(autoplayTimeoutSec * 1000L)
+            delay(autoplayTimeoutSeconds * 1000L)
             if (_focusedIndex.value != index) return@launch
             val trailer = getTrailerUseCase(item.tmdbId, item.type) ?: return@launch
             _trailerUrl.value = "https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=0&controls=0&rel=0"
