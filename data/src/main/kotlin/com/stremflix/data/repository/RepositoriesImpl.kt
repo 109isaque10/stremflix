@@ -71,6 +71,10 @@ class MetadataRepositoryImpl(
         }.kotlinx.coroutines.flow.first()
     }
 
+    /**
+     * Temporary fallback while TMDB season details endpoint wiring is pending.
+     * Returns mock episodes to keep the UI functional.
+     */
     override suspend fun episodes(tmdbId: Int, season: Int): List<Episode> = List(8) {
         // TODO replace with TMDB season details endpoint wiring.
         Episode(

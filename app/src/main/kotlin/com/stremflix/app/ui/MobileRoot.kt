@@ -392,13 +392,15 @@ class MobileRootViewModel @Inject constructor(
         // playback is launched from detail by selecting first resolved stream in production.
     }
 
-    suspend fun loadDetail(item: MediaItem) {
-        runCatching {
-            _episodes.value = if (item.type == MediaType.SHOW) metadataRepository.episodes(item.tmdbId, 1) else emptyList()
-            _cast.value = metadataRepository.cast(item.tmdbId, item.type)
-        }.onFailure {
-            _episodes.value = emptyList()
-            _cast.value = emptyList()
+    fun loadDetail(item: MediaItem) {
+        viewModelScope.launch {
+            runCatching {
+                _episodes.value = if (item.type == MediaType.SHOW) metadataRepository.episodes(item.tmdbId, 1) else emptyList()
+                _cast.value = metadataRepository.cast(item.tmdbId, item.type)
+            }.onFailure {
+                _episodes.value = emptyList()
+                _cast.value = emptyList()
+            }
         }
     }
 

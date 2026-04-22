@@ -105,9 +105,9 @@ private fun StartupVideo(@RawRes rawResId: Int, onFinished: () -> Unit) {
 @Composable
 private fun TvHomeScreen(viewModel: TvViewModel) {
     val media by viewModel.media.collectAsState()
+    val myList by viewModel.myList.collectAsState()
     val focusedIndex by viewModel.focusedIndex.collectAsState()
     val trailerUrl by viewModel.trailerUrl.collectAsState()
-    val myListItems = remember(media) { media.shuffled().take(12) }
 
     Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         media.getOrNull(focusedIndex)?.let { featured ->
@@ -130,7 +130,7 @@ private fun TvHomeScreen(viewModel: TvViewModel) {
             item {
                 TvRow(
                     title = "My List",
-                    items = myListItems,
+                    items = myList,
                     onFocus = { idx -> viewModel.setFocusedItem(idx) }
                 )
             }
@@ -173,6 +173,19 @@ private fun HeroSection(item: MediaItem, trailerUrl: String?, onFocusActive: () 
                 factory = {
                     android.webkit.WebView(it).apply {
                         settings.javaScriptEnabled = true
+                        settings.allowFileAccess = false
+                        settings.allowContentAccess = false
+                        settings.domStorageEnabled = false
+                        settings.setSupportZoom(false)
+                        webViewClient = object : android.webkit.WebViewClient() {
+                            override fun shouldOverrideUrlLoading(
+                                view: android.webkit.WebView?,
+                                request: android.webkit.WebResourceRequest?
+                            ): Boolean {
+                                val host = request?.url?.host.orEmpty()
+                                return host != "www.youtube.com" && host != "youtube.com" && host != "www.youtube-nocookie.com"
+                            }
+                        }
                         loadUrl(trailerUrl)
                     }
                 }
@@ -244,6 +257,8 @@ class TvViewModel @Inject constructor(
 
     private val _media = MutableStateFlow<List<MediaItem>>(emptyList())
     val media: StateFlow<List<MediaItem>> = _media.asStateFlow()
+    private val _myList = MutableStateFlow<List<MediaItem>>(emptyList())
+    val myList = _myList.asStateFlow()
 
     private val _focusedIndex = MutableStateFlow(0)
     val focusedIndex = _focusedIndex.asStateFlow()
@@ -255,7 +270,10 @@ class TvViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            observeHomeRowsUseCase().collect { _media.value = it }
+            observeHomeRowsUseCase().collect {
+                _media.value = it
+                _myList.value = it.take(12)
+            }
         }
     }
 
