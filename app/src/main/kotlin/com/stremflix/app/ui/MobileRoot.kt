@@ -43,7 +43,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -188,7 +187,7 @@ private fun HeroCard(item: MediaItem, onSelect: () -> Unit) {
         )
         Column(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)) {
             Text(item.title, color = Color.White)
-            Text("${item.matchPercent}% Match • ${item.year.orEmpty()} • ${item.maturity.orEmpty()} • ${item.quality} • ${item.audio}", color = Color.Green)
+            Text("Match ${item.matchPercent}% • ${item.year.orEmpty()} • ${item.maturity.orEmpty()} • ${item.quality} • ${item.audio}", color = Color.White)
             Text(item.overview, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
                 Button(onClick = onSelect) { Text("Play") }
@@ -225,14 +224,13 @@ private fun DetailBottomSheet(
     val episodes by viewModel.episodes.collectAsState()
     val cast by viewModel.cast.collectAsState()
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(item.tmdbId, item.type) { viewModel.loadDetail(item) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet, containerColor = Color(0xFF111111)) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(item.title, color = Color.White)
-            Text("${item.matchPercent}% Match • ${item.year.orEmpty()} • ${item.maturity.orEmpty()} • ${item.quality}", color = Color.Green)
+            Text("Match ${item.matchPercent}% • ${item.year.orEmpty()} • ${item.maturity.orEmpty()} • ${item.quality}", color = Color.White)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onPlay) { Text("Play") }
                 Button(onClick = { viewModel.toggleMyList(item) }) { Text("My List") }

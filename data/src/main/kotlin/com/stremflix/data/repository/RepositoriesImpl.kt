@@ -72,6 +72,7 @@ class MetadataRepositoryImpl(
     }
 
     override suspend fun episodes(tmdbId: Int, season: Int): List<Episode> = List(8) {
+        // TODO replace with TMDB season details endpoint wiring.
         Episode(
             season = season,
             episodeNumber = it + 1,
@@ -189,9 +190,14 @@ class WatchProgressRepositoryImpl(private val dao: CacheDao) : WatchProgressRepo
     }
 }
 
-class TraktRepositoryImpl(private val traktService: TraktService) : TraktRepository {
+class TraktRepositoryImpl(
+    private val traktService: TraktService,
+    private val preferencesRepository: PreferencesRepository
+) : TraktRepository {
     override suspend fun fetchPersonalListRows(): Map<String, List<MediaItem>> {
-        return runCatching { traktService.lists("") }.getOrDefault(emptyList()).associate { it.name to emptyList() }
+        val key = preferencesRepository.traktKey().orEmpty()
+        if (key.isBlank()) return emptyMap()
+        return runCatching { traktService.lists(key) }.getOrDefault(emptyList()).associate { it.name to emptyList() }
     }
 
     override suspend fun fetchPopularPublicLists(): List<String> = listOf("Trending", "Top Rated", "Cult Classics")

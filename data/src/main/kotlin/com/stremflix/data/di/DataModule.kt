@@ -94,5 +94,8 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideTraktRepository(traktService: TraktService): TraktRepository = TraktRepositoryImpl(traktService)
+    fun provideTraktRepository(
+        traktService: TraktService,
+        preferencesRepository: PreferencesRepository
+    ): TraktRepository = TraktRepositoryImpl(traktService, preferencesRepository)
 }

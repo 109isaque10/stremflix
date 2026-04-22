@@ -28,7 +28,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -108,6 +107,7 @@ private fun TvHomeScreen(viewModel: TvViewModel) {
     val media by viewModel.media.collectAsState()
     val focusedIndex by viewModel.focusedIndex.collectAsState()
     val trailerUrl by viewModel.trailerUrl.collectAsState()
+    val myListItems = remember(media) { media.shuffled().take(12) }
 
     Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         media.getOrNull(focusedIndex)?.let { featured ->
@@ -130,7 +130,7 @@ private fun TvHomeScreen(viewModel: TvViewModel) {
             item {
                 TvRow(
                     title = "My List",
-                    items = media.shuffled().take(12),
+                    items = myListItems,
                     onFocus = { idx -> viewModel.setFocusedItem(idx) }
                 )
             }
@@ -166,6 +166,16 @@ private fun HeroSection(item: MediaItem, trailerUrl: String?, onFocusActive: () 
                 contentDescription = item.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
+            )
+        } else if (trailerUrl.startsWith("https://www.youtube.com/embed/")) {
+            androidx.compose.ui.viewinterop.AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = {
+                    android.webkit.WebView(it).apply {
+                        settings.javaScriptEnabled = true
+                        loadUrl(trailerUrl)
+                    }
+                }
             )
         } else {
             androidx.compose.ui.viewinterop.AndroidView(
@@ -257,7 +267,7 @@ class TvViewModel @Inject constructor(
             delay(autoplayTimeoutSec * 1000L)
             if (_focusedIndex.value != index) return@launch
             val trailer = getTrailerUseCase(item.tmdbId, item.type) ?: return@launch
-            _trailerUrl.value = "https://www.youtube.com/watch?v=${trailer.key}"
+            _trailerUrl.value = "https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=0&controls=0&rel=0"
         }
     }
 }
