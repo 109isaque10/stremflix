@@ -26,7 +26,7 @@ jobs:
         run: ./gradlew :app:assembleDebug
 
       - name: Upload Mobile APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
@@ -50,7 +50,7 @@ jobs:
         run: ./gradlew :tv:assembleDebug
 
       - name: Upload TV APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tv-debug
           path: tv/build/outputs/apk/debug/tv-debug.apk
