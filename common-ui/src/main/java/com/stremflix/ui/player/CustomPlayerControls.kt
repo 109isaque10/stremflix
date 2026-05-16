@@ -4,17 +4,14 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -25,11 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
-import com.stremflix.data.model.ContentItem
 import com.stremflix.ui.R
 import com.stremflix.ui.theme.NetflixRed
 import com.stremflix.ui.theme.NetflixTextPrimary
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 
 @Composable
@@ -199,13 +194,16 @@ fun CustomPlayerControls(
                     .background(Color.Black.copy(alpha = 0.6f))
                     .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
+                val safeDuration = if (duration > 0L) duration.toFloat() else 100f
+                val safePosition = currentPosition.toFloat().coerceIn(0f, safeDuration)
+
                 // Seek Bar
                 Slider(
-                    value = if (duration > 0) currentPosition.toFloat() / duration else 0f,
+                    value = safePosition,
                     onValueChange = { ratio ->
                         if (duration > 0) viewModel.onSeekTo(ratio.toLong())
                     },
-                    valueRange = 0f..duration.toFloat(),
+                    valueRange = 0f..safeDuration,
                     modifier = Modifier.fillMaxWidth(),
                     colors = SliderDefaults.colors(
                         thumbColor = NetflixRed,

@@ -5,8 +5,8 @@ import com.stremflix.core.domain.model.IdType
 import com.stremflix.core.domain.model.Result
 import com.stremflix.data.local.PreferencesDataSource
 import com.stremflix.data.model.ExternalIds
-import com.stremflix.data.remote.StremioApi
 import com.stremflix.data.model.Stream
+import com.stremflix.data.remote.StremioApi
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,11 +16,11 @@ class StreamRepository @Inject constructor(
     private val preferencesDataSource: PreferencesDataSource
 ) {
 
-    suspend fun getStreams(contentId: String, contentType: String, idType: IdType, externalIds: ExternalIds? = null): Result<out List<Stream>> {
+    suspend fun getStreams(contentId: String, contentType: String, idType: IdType, externalIds: ExternalIds? = null, season: Int? = null, episode: Int? = null): Result<out List<Stream>> {
         return try {
             // Stremio expects type (movie/series) and id (imdb/tmdb)
             // We might need to resolve the correct ID format based on idType
-            val streamId = resolveStreamId(contentId, idType, externalIds)
+            val streamId = resolveStreamId(contentId, idType, externalIds, episode, season)
 
             if (streamId == null) {
                 return Result.Error(ApiError(message = "Could not resolve content ID"))
@@ -56,7 +56,9 @@ class StreamRepository @Inject constructor(
     private fun resolveStreamId(
         contentId: String,
         idType: IdType,
-        externalIds: ExternalIds?
+        externalIds: ExternalIds?,
+        episode: Int?,
+        season: Int?
     ): String? {
         return when (idType) {
             IdType.IMDB -> {
@@ -64,7 +66,7 @@ class StreamRepository @Inject constructor(
                 val imdbId = externalIds?.imdbId
 
                 if (!imdbId.isNullOrEmpty()) {
-                    if (imdbId.startsWith("tt")) imdbId else "tt$imdbId"
+                    if (imdbId.startsWith("tt")) "$imdbId:$season:$episode" else "tt$imdbId:$season:$episode"
                 } else {
                     // Try to construct from contentId if it looks like IMDB
                     if (contentId.startsWith("tt")) {
@@ -83,13 +85,13 @@ class StreamRepository @Inject constructor(
                 val tmdbId = externalIds?.tmdbId
 
                 if (tmdbId != null && tmdbId > 0) {
-                    "tmdb:$tmdbId"
+                    "tmdb:$tmdbId:$season:$episode"
                 } else {
                     // Try to parse contentId as number
                     contentId.toIntOrNull()?.let { num ->
-                        "tmdb:$num"
+                        "tmdb:$num:$season:$episode"
                     } ?: externalIds?.imdbId?.let { imdb ->
-                        imdb
+                        "$imdb:$season:$episode"
                     }
                 }
             }

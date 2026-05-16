@@ -3,6 +3,7 @@ package com.stremflix.ui.player
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -11,21 +12,26 @@ import com.stremflix.core.domain.model.IdType
 import com.stremflix.core.domain.model.Result
 import com.stremflix.core.util.AppDispatchers
 import com.stremflix.core.util.PlaybackConfig
-import com.stremflix.data.model.Episode
-import com.stremflix.data.model.Stream
-import com.stremflix.data.repository.ContentRepository
-import com.stremflix.data.repository.StreamRepository
-import com.stremflix.data.repository.TraktRepository
-import com.stremflix.data.model.ContentItem
-import androidx.media3.common.C
 import com.stremflix.data.local.dao.WatchHistoryDao
 import com.stremflix.data.local.entity.WatchHistoryEntity
 import com.stremflix.data.manager.TraktOAuthManager
+import com.stremflix.data.model.ContentItem
+import com.stremflix.data.model.Episode
+import com.stremflix.data.model.Stream
+import com.stremflix.data.remote.dto.trakt.EpisodeInfo
+import com.stremflix.data.remote.dto.trakt.MovieInfo
+import com.stremflix.data.remote.dto.trakt.TraktIds
+import com.stremflix.data.remote.dto.trakt.TraktScrobbleItem
+import com.stremflix.data.repository.ContentRepository
+import com.stremflix.data.repository.StreamRepository
+import com.stremflix.data.repository.TraktRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -107,8 +113,8 @@ class PlaybackViewModel @Inject constructor(
 
     private val _showInfoOverlay = MutableStateFlow(false)
     val showInfoOverlay: StateFlow<Boolean> = _showInfoOverlay.asStateFlow()
-    private var controlsHideJob: kotlinx.coroutines.Job? = null
-    private var infoOverlayJob: kotlinx.coroutines.Job? = null
+    private var controlsHideJob: Job? = null
+    private var infoOverlayJob: Job? = null
 
     private var countdownJob: Job? = null
     private var positionUpdateJob: Job? = null
@@ -145,7 +151,7 @@ class PlaybackViewModel @Inject constructor(
             player.prepare()
             player.playWhenReady = true
             // Start position updates
-            startPositionUpdates()
+            startProgressTracking()
 
             // Start controls hide timer
             startControlsHideTimer()
@@ -275,16 +281,23 @@ class PlaybackViewModel @Inject constructor(
         currentContentId?.let { id ->
             try {
                 val scrobbleItem = TraktScrobbleItem(
-                    progress = progress * 100, // Trakt uses percentage
-                    episode = if (currentSeason != null && currentEpisode != null) {
-                        TraktScrobbleItem.Episode(
-                            season = currentSeason!!,
-                            number = currentEpisode!!
-                        )
-                    } else null,
-                    movie = if (currentSeason == null) {
-                        TraktScrobbleItem.Movie(ids = TraktIds(tmdb = id.toIntOrNull()))
-                    } else null
+                    progress = progress * 100f,
+                    episode = if (currentSeason != null) EpisodeInfo(TraktIds(
+                        id.toInt(),
+                        slug = null,
+                        tvdb = null,
+                        imdb = null,
+                        tmdb = null,
+                        tvrage = null
+                    )) else null,
+                    movie = if (currentSeason == null) MovieInfo(TraktIds(
+                        id.toInt(),
+                        slug = null,
+                        tvdb = null,
+                        imdb = null,
+                        tmdb = null,
+                        tvrage = null
+                    )) else null
                 )
 
                 if (progress >= 0.9f) {
@@ -323,7 +336,9 @@ class PlaybackViewModel @Inject constructor(
         val streamResult = streamRepository.getStreams(
             contentId = nextEp.seriesId,
             contentType = "series",
-            idType = IdType.TMDB
+            idType = IdType.IMDB,
+            episode = nextEp.episodeNumber,
+            season = nextEp.seasonNumber
         )
 
         if (streamResult is Result.Success && streamResult.data.isNotEmpty()) {

@@ -8,6 +8,7 @@ import com.stremflix.data.mapper.toDomain
 import com.stremflix.data.mapper.toEntity
 import com.stremflix.data.model.WatchHistory
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,6 +16,12 @@ import javax.inject.Singleton
 class WatchHistoryRepository @Inject constructor(
     private val watchHistoryDao: WatchHistoryDao
 ) {
+
+    fun getAllWatchHistory(): Flow<List<WatchHistory>> {
+        return watchHistoryDao.getAllHistory().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
 
     suspend fun getLastWatchedEpisode(seriesId: String): WatchHistory? {
         return watchHistoryDao.getLastWatchedForSeries(seriesId)?.toDomain()

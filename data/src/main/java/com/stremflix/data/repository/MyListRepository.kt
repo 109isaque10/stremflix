@@ -1,18 +1,15 @@
 package com.stremflix.data.repository
 
 import com.stremflix.core.domain.model.ContentType
+import com.stremflix.core.domain.model.Result
+import com.stremflix.data.local.PreferencesDataSource
 import com.stremflix.data.local.dao.MyListDao
 import com.stremflix.data.local.entity.MyListEntity
-import com.stremflix.data.local.PreferencesDataSource
-import com.stremflix.data.mapper.toEntity
-import com.stremflix.data.mapper.toDomainItem
 import com.stremflix.data.model.ContentItem
 import com.stremflix.data.remote.TraktApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import com.stremflix.core.domain.model.Result
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -93,16 +90,20 @@ class MyListRepository @Inject constructor(
             myListDao.clearAll()
 
             watchlist.forEach { item ->
+                // Use the movie or show object inside the watchlistItem
+                val movie = item.movie
+                val show = item.show
+                val ids = movie?.ids ?: show?.ids
                 val entity = MyListEntity(
-                    id = item.ids?.tmdb?.toString() ?: item.ids?.trakt.toString(),
+                    id = ids?.tmdb?.toString() ?: ids?.trakt.toString(),
                     type = item.type,
-                    title = item.title ?: "",
+                    title = movie?.title ?: show?.title ?: "",
                     posterUrl = null, // Will be fetched later
-                    year = item.year,
+                    year = movie?.year ?: show?.year,
                     dateAdded = System.currentTimeMillis(),
-                    traktId = item.ids?.trakt,
-                    tmdbId = item.ids?.tmdb,
-                    imdbId = item.ids?.imdb
+                    traktId = ids?.trakt,
+                    tmdbId = ids?.tmdb,
+                    imdbId = ids?.imdb
                 )
                 myListDao.addItem(entity)
             }

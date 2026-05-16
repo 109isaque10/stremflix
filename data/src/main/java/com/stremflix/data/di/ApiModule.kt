@@ -1,17 +1,16 @@
 package com.stremflix.data.di
 
 import com.stremflix.data.local.PreferencesDataSource
-import com.stremflix.data.local.StremflixDatabase
 import com.stremflix.data.remote.OmdbApi
 import com.stremflix.data.remote.StremioApi
 import com.stremflix.data.remote.TmdbApi
 import com.stremflix.data.remote.TraktApi
-import com.stremflix.data.local.dao.WatchHistoryDao
+import com.stremflix.data.repository.TraktTokenRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import io.ktor.client.HttpClient
+import io.ktor.client.*
 import javax.inject.Singleton
 
 @Module
@@ -29,8 +28,9 @@ object ApiModule {
     @Singleton
     fun provideTraktApi(
         httpClient: HttpClient,
-        preferencesDataSource: PreferencesDataSource
-    ): TraktApi = TraktApi(httpClient, preferencesDataSource)
+        preferencesDataSource: PreferencesDataSource,
+        traktTokenRepository: TraktTokenRepository
+    ): TraktApi = TraktApi(httpClient, preferencesDataSource, traktTokenRepository)
 
     @Provides
     @Singleton

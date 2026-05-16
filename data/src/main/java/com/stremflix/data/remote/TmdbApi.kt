@@ -4,18 +4,12 @@ package com.stremflix.data.remote
 
 import com.stremflix.core.util.ApiEndpoints
 import com.stremflix.data.local.PreferencesDataSource
-import com.stremflix.data.remote.dto.tmdb.GenreDto
-import com.stremflix.data.remote.dto.tmdb.TmdbDetailsDto
-import com.stremflix.data.remote.dto.tmdb.TmdbErrorDto
-import com.stremflix.data.remote.dto.tmdb.TmdbPagedResponse
-import com.stremflix.data.remote.dto.tmdb.TmdbSeasonDetailsDto
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.get
-import io.ktor.client.request.parameter
-import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.HttpStatusCode
+import com.stremflix.data.remote.dto.tmdb.*
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.Serializable
@@ -324,25 +318,29 @@ class TmdbApi @Inject constructor(
     suspend fun discoverMovies(genre: Int?, page: Int = 1): TmdbPagedResponse {
         val apiKey = apiKeyFlow.first()
         val lang = langFlow.first()
-        return httpClient.get("${ApiEndpoints.TMDB_BASE}discover/movie") {
-            parameter("api_key", apiKey)
-            parameter("with_genres", genre)
-            parameter("sort_by", "popularity.desc")
-            parameter("page", page)
-            parameter("language", lang)
-        }.body()
+        return try {
+            httpClient.get("${ApiEndpoints.TMDB_BASE}discover/movie") {
+                parameter("api_key", apiKey)
+                parameter("with_genres", genre)
+                parameter("sort_by", "popularity.desc")
+                parameter("page", page)
+                parameter("language", lang)
+            }.body()
+        } catch (e: Exception) { TmdbPagedResponse(page = page, results = emptyList(), totalPages = 0, totalResults = 0) }
     }
 
     suspend fun discoverTvShows(genre: Int?, page: Int = 1): TmdbPagedResponse {
         val apiKey = apiKeyFlow.first()
         val lang = langFlow.first()
-        return httpClient.get("${ApiEndpoints.TMDB_BASE}discover/tv") {
-            parameter("api_key", apiKey)
-            parameter("with_genres", genre)
-            parameter("sort_by", "popularity.desc")
-            parameter("page", page)
-            parameter("language", lang)
-        }.body()
+        return try {
+            httpClient.get("${ApiEndpoints.TMDB_BASE}discover/tv") {
+                parameter("api_key", apiKey)
+                parameter("with_genres", genre)
+                parameter("sort_by", "popularity.desc")
+                parameter("page", page)
+                parameter("language", lang)
+            }.body()
+        } catch (e: Exception) { TmdbPagedResponse(page = page, results = emptyList(), totalPages = 0, totalResults = 0) }
     }
 
     // Add these methods to TmdbApi.kt
@@ -350,83 +348,101 @@ class TmdbApi @Inject constructor(
 // ============ TOP RATED ============
 
     suspend fun getTopRatedMovies(page: Int = 1): TmdbPagedResponse {
-        return httpClient.get("${ApiEndpoints.TMDB_BASE}movie/top_rated") {
-            parameter("api_key", apiKeyFlow.first())
-            parameter("language", langFlow.first())
-            parameter("page", page)
-        }.body()
+        return try {
+            httpClient.get("${ApiEndpoints.TMDB_BASE}movie/top_rated") {
+                parameter("api_key", apiKeyFlow.first())
+                parameter("language", langFlow.first())
+                parameter("page", page)
+            }.body()
+        } catch (e: Exception) { TmdbPagedResponse(page = page, results = emptyList(), totalPages = 0, totalResults = 0) }
     }
 
     suspend fun getTopRatedTv(page: Int = 1): TmdbPagedResponse {
-        return httpClient.get("${ApiEndpoints.TMDB_BASE}tv/top_rated") {
-            parameter("api_key", apiKeyFlow.first())
-            parameter("language", langFlow.first())
-            parameter("page", page)
-        }.body()
+        return try {
+            httpClient.get("${ApiEndpoints.TMDB_BASE}tv/top_rated") {
+                parameter("api_key", apiKeyFlow.first())
+                parameter("language", langFlow.first())
+                parameter("page", page)
+            }.body()
+        } catch (e: Exception) { TmdbPagedResponse(page = page, results = emptyList(), totalPages = 0, totalResults = 0) }
     }
 
 // ============ NOW PLAYING ============
 
     suspend fun getNowPlayingMovies(page: Int = 1): TmdbPagedResponse {
-        return httpClient.get("${ApiEndpoints.TMDB_BASE}movie/now_playing") {
-            parameter("api_key", apiKeyFlow.first())
-            parameter("language", langFlow.first())
-            parameter("page", page)
-        }.body()
+        return try {
+            httpClient.get("${ApiEndpoints.TMDB_BASE}movie/now_playing") {
+                parameter("api_key", apiKeyFlow.first())
+                parameter("language", langFlow.first())
+                parameter("page", page)
+            }.body()
+        } catch (e: Exception) { TmdbPagedResponse(page = page, results = emptyList(), totalPages = 0, totalResults = 0) }
     }
 
 // ============ UPCOMING ============
 
     suspend fun getUpcomingMovies(page: Int = 1): TmdbPagedResponse {
-        return httpClient.get("${ApiEndpoints.TMDB_BASE}movie/upcoming") {
-            parameter("api_key", apiKeyFlow.first())
-            parameter("language", langFlow.first())
-            parameter("page", page)
-        }.body()
+        return try {
+            httpClient.get("${ApiEndpoints.TMDB_BASE}movie/upcoming") {
+                parameter("api_key", apiKeyFlow.first())
+                parameter("language", langFlow.first())
+                parameter("page", page)
+            }.body()
+        } catch (e: Exception) { TmdbPagedResponse(page = page, results = emptyList(), totalPages = 0, totalResults = 0) }
     }
 
 // ============ CURRENTLY AIRING ============
 
     suspend fun getCurrentlyAiringTv(page: Int = 1): TmdbPagedResponse {
-        return httpClient.get("${ApiEndpoints.TMDB_BASE}tv/airing_today") {
-            parameter("api_key", apiKeyFlow.first())
-            parameter("language", langFlow.first())
-            parameter("page", page)
-        }.body()
+        return try {
+            httpClient.get("${ApiEndpoints.TMDB_BASE}tv/airing_today") {
+                parameter("api_key", apiKeyFlow.first())
+                parameter("language", langFlow.first())
+                parameter("page", page)
+            }.body()
+        } catch (e: Exception) { TmdbPagedResponse(page = page, results = emptyList(), totalPages = 0, totalResults = 0) }
     }
 
 // ============ RECOMMENDATIONS ============
 
     suspend fun getMovieRecommendations(movieId: Int, page: Int = 1): TmdbPagedResponse {
-        return httpClient.get("${ApiEndpoints.TMDB_BASE}movie/$movieId/recommendations") {
-            parameter("api_key", apiKeyFlow.first())
-            parameter("language", langFlow.first())
-            parameter("page", page)
-        }.body()
+        return try {
+            httpClient.get("${ApiEndpoints.TMDB_BASE}movie/$movieId/recommendations") {
+                parameter("api_key", apiKeyFlow.first())
+                parameter("language", langFlow.first())
+                parameter("page", page)
+            }.body()
+        } catch (e: Exception) { TmdbPagedResponse(page = page, results = emptyList(), totalPages = 0, totalResults = 0) }
     }
 
     suspend fun getTvRecommendations(tvId: Int, page: Int = 1): TmdbPagedResponse {
-        return httpClient.get("${ApiEndpoints.TMDB_BASE}tv/$tvId/recommendations") {
-            parameter("api_key", apiKeyFlow.first())
-            parameter("language", langFlow.first())
-            parameter("page", page)
-        }.body()
+        return try {
+            httpClient.get("${ApiEndpoints.TMDB_BASE}tv/$tvId/recommendations") {
+                parameter("api_key", apiKeyFlow.first())
+                parameter("language", langFlow.first())
+                parameter("page", page)
+            }.body()
+        } catch (e: Exception) { TmdbPagedResponse(page = page, results = emptyList(), totalPages = 0, totalResults = 0) }
     }
 
 // ============ GENRES ============
 
     suspend fun getMovieGenres(): GenreResponse {
-        return httpClient.get("${ApiEndpoints.TMDB_BASE}genre/movie/list") {
-            parameter("api_key", apiKeyFlow.first())
-            parameter("language", langFlow.first())
-        }.body()
+        return try {
+            httpClient.get("${ApiEndpoints.TMDB_BASE}genre/movie/list") {
+                parameter("api_key", apiKeyFlow.first())
+                parameter("language", langFlow.first())
+            }.body()
+        } catch (e: Exception) { GenreResponse(emptyList()) }
     }
 
     suspend fun getTvGenres(): GenreResponse {
-        return httpClient.get("${ApiEndpoints.TMDB_BASE}genre/tv/list") {
-            parameter("api_key", apiKeyFlow.first())
-            parameter("language", langFlow.first())
-        }.body()
+        return try {
+            httpClient.get("${ApiEndpoints.TMDB_BASE}genre/tv/list") {
+                parameter("api_key", apiKeyFlow.first())
+                parameter("language", langFlow.first())
+            }.body()
+        } catch (e: Exception) { GenreResponse(emptyList()) }
     }
 
     // Add this DTO

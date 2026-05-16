@@ -10,12 +10,10 @@ import com.stremflix.data.mapper.toDomainItem
 import com.stremflix.data.model.WatchHistory
 import com.stremflix.data.remote.TraktApi
 import com.stremflix.data.remote.dto.trakt.TraktScrobbleItem
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.collections.mapNotNull
 
 @Singleton
 class TraktRepository @Inject constructor(
@@ -39,11 +37,7 @@ class TraktRepository @Inject constructor(
             try {
                 val watchlist = traktApi.getWatchlist()
                 val items = watchlist.mapNotNull { item ->
-                    when (item.type) {
-                        "movie" -> item.movie?.toDomainItem()
-                        "show" -> item.show?.toDomainItem()
-                        else -> null
-                    }
+                    item.movie?.toDomainItem() ?: item.show?.toDomainItem()
                 }
                 Result.Success(items)
             } catch (e: Exception) {
@@ -191,11 +185,15 @@ class TraktRepository @Inject constructor(
                     watched.movie?.let { movie ->
                         history.add(
                             WatchHistory(
-                                id = movie.ids?.tmdb?.toString() ?: "",
-                                type = com.stremflix.core.domain.model.ContentType.MOVIE,
+                                episodeId = "movie_${movie.ids?.trakt}", // Movie uses dummy episodeId
+                                seriesId = movie.ids?.trakt?.toString() ?: "",
+                                seasonNumber = 0,
+                                episodeNumber = 0,
+                                watched = true,
+                                watchProgress = 1.0f,
+                                lastWatchedAt = null, // Or parse from watched.watched_at
                                 title = movie.title ?: "",
-                                watchedAt = null,
-                                progress = 1.0f
+                                synopsis = movie.overview
                             )
                         )
                     }

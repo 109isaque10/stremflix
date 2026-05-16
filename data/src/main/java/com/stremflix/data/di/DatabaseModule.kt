@@ -4,10 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.stremflix.core.util.ContentLoadManager
 import com.stremflix.data.local.StremflixDatabase
-import com.stremflix.data.local.dao.ContentDao
-import com.stremflix.data.local.dao.EpisodeDao
-import com.stremflix.data.local.dao.TraktTokenDao
-import com.stremflix.data.local.dao.WatchHistoryDao
+import com.stremflix.data.local.dao.*
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -52,4 +49,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideContentLoadManager(): ContentLoadManager = ContentLoadManager()
+
+    @Provides
+    @Singleton
+    fun provideMyListDao(database: StremflixDatabase): MyListDao {
+        return database.myListDao()
+    }
 }

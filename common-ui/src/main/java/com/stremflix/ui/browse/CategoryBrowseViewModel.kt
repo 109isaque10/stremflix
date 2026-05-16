@@ -2,13 +2,14 @@ package com.stremflix.ui.browse
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.stremflix.core.domain.model.ContentType
 import com.stremflix.core.util.AppDispatchers
 import com.stremflix.data.mapper.toDomainItem
 import com.stremflix.data.remote.TmdbApi
 import com.stremflix.data.util.TmdbGenres
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -50,8 +51,8 @@ class CategoryBrowseViewModel @Inject constructor(
                 val moviesResult = tmdbApi.discoverMovies(genreId)
                 val tvResult = tmdbApi.discoverTvShows(genreId)
 
-                val movieItems = moviesResult.results!!.mapNotNull { it.toDomainItem(ContentType.MOVIE) }
-                val tvItems = tvResult.results!!.mapNotNull { it.toDomainItem(ContentType.MOVIE) }
+                val movieItems = moviesResult.results!!.mapNotNull { it.toDomainItem() }
+                val tvItems = tvResult.results!!.mapNotNull { it.toDomainItem() }
 
                 // Combine, remove duplicates by ID, sort by year descending
                 val combined = (movieItems + tvItems)

@@ -10,12 +10,8 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -27,15 +23,15 @@ class TraktApi @Inject constructor(
 ) {
     private val clientIdFlow: Flow<String> = preferencesDataSource.traktClientId
 
-    @OptIn(DelicateCoroutinesApi::class)
-    private suspend fun getHeaders(): HeadersBuilder.() -> Unit = {
-        GlobalScope.launch(Dispatchers.IO) {
-            val clientId = clientIdFlow.first()
-            val token = tokenRepository.tokenFlow.first()?.accessToken
+    private suspend fun getHeaders(): HeadersBuilder.() -> Unit {
+        val clientId = clientIdFlow.first()
+        val token = tokenRepository.tokenFlow.first()?.accessToken
 
+        return {
             append("trakt-api-version", "2")
             append(HttpHeaders.ContentType, "application/json")
             if (clientId.isNotEmpty()) append("trakt-api-key", clientId)
+            // ADD "Bearer " prefix
             if (token != null) append(HttpHeaders.Authorization, "Bearer $token")
         }
     }

@@ -4,6 +4,7 @@ import android.content.Context
 import com.stremflix.core.util.AppDispatchers
 import com.stremflix.data.local.PreferencesDataSource
 import com.stremflix.data.local.dao.ContentDao
+import com.stremflix.data.local.dao.MyListDao
 import com.stremflix.data.manager.TraktOAuthManager
 import com.stremflix.data.remote.StremioApi
 import com.stremflix.data.remote.TmdbApi
@@ -38,9 +39,9 @@ object RepositoryModule {
     fun provideTraktRepository(
         traktApi: TraktApi,
         oAuthManager: TraktOAuthManager,
-        contentDao: ContentDao, // ADD THIS
+        preferencesDataSource: PreferencesDataSource, // ADD THIS
         dispatchers: AppDispatchers // ADD THIS
-    ): TraktRepository = TraktRepository(traktApi, oAuthManager, contentDao, dispatchers)
+    ): TraktRepository = TraktRepository(traktApi, oAuthManager, preferencesDataSource, dispatchers)
 
     @Provides
     @Singleton
@@ -63,4 +64,13 @@ object RepositoryModule {
         tokens: TraktTokenRepository,
         dispatchers: AppDispatchers
     ): TraktOAuthManager = TraktOAuthManager(context, api, prefs, tokens, dispatchers)
+
+    @Provides
+    @Singleton
+    fun provideMyListRepository(
+        myListDao: MyListDao,
+        traktApi: TraktApi,
+        preferencesDataSource: PreferencesDataSource,
+        contentRepository: ContentRepository
+    ): MyListRepository = MyListRepository(myListDao, traktApi, preferencesDataSource, contentRepository)
 }

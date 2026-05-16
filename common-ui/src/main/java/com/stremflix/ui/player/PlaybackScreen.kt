@@ -7,12 +7,7 @@ import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -92,6 +87,9 @@ fun PlaybackScreen(
             modifier = Modifier.fillMaxSize()
         )
 
+        val duration by viewModel.duration.collectAsState()
+        val progressPercent = if (duration > 0) progress.toFloat() / duration.toFloat() else 0f
+
         CustomPlayerControls(
             player = viewModel.player,
             contentTitle = contentTitle,
@@ -100,7 +98,7 @@ fun PlaybackScreen(
             season = season,
             episode = episode,
             uiState = uiState,
-            progress = progress,
+            progress = progressPercent,
             onPlayPause = viewModel::onPlayPause,
             onSeek = viewModel::onSeekTo,
             onBack = onBack,

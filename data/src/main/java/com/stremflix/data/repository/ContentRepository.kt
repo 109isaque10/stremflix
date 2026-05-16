@@ -108,6 +108,46 @@ class ContentRepository @Inject constructor(
             Result.Error(ApiError.fromThrowable(e))
         }
     }
+
+    // data/src/main/java/com/stremflix/data/repository/ContentRepository.kt
+
+    // Add these methods to ContentRepository class
+    suspend fun getTopRated(contentType: ContentType, page: Int = 1): Result<List<ContentItem>> {
+        val response = if (contentType == ContentType.MOVIE) tmdbApi.getTopRatedMovies(page)
+        else tmdbApi.getTopRatedTv(page)
+        return Result.Success(response.results?.mapNotNull { it.toDomainItem() } ?: emptyList())
+    }
+
+    suspend fun getNowPlaying(page: Int = 1): Result<List<ContentItem>> {
+        val response = tmdbApi.getNowPlayingMovies(page)
+        return Result.Success(response.results?.mapNotNull { it.toDomainItem() } ?: emptyList())
+    }
+
+    suspend fun getUpcomingMovies(page: Int = 1): Result<List<ContentItem>> {
+        val response = tmdbApi.getUpcomingMovies(page)
+        return Result.Success(response.results?.mapNotNull { it.toDomainItem() } ?: emptyList())
+    }
+
+    suspend fun getCurrentlyAiring(page: Int = 1): Result<List<ContentItem>> {
+        val response = tmdbApi.getCurrentlyAiringTv(page)
+        return Result.Success(response.results?.mapNotNull { it.toDomainItem() } ?: emptyList())
+    }
+
+    suspend fun getMoviesByGenre(genreId: Int? = null, page: Int = 1): Result<List<ContentItem>> {
+        val response = tmdbApi.discoverMovies(genreId, page)
+        return Result.Success(response.results?.mapNotNull { it.toDomainItem() } ?: emptyList())
+    }
+
+    suspend fun getRecommendations(id: String, type: ContentType): Result<List<ContentItem>> {
+        val intId = id.toIntOrNull() ?: return Result.Success(emptyList())
+        val response = if (type == ContentType.MOVIE) tmdbApi.getMovieRecommendations(intId)
+        else tmdbApi.getTvRecommendations(intId)
+        return Result.Success(response.results?.mapNotNull { it.toDomainItem() } ?: emptyList())
+    }
+
+    // Fallbacks for anticipated (Trakt is preferred, but these provide data)
+    suspend fun getUpcomingSeries(page: Int = 1): Result<List<ContentItem>> = getCurrentlyAiring(page)
+    suspend fun getAnticipatedSeries(page: Int = 1): Result<List<ContentItem>> = getPopular(ContentType.SERIES, page)
 }
 
 private fun ContentItem.toEntity(): ContentEntity {

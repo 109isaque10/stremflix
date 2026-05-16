@@ -9,8 +9,13 @@ import com.stremflix.data.model.ContentItem
 import com.stremflix.data.model.Episode
 import com.stremflix.data.model.ExternalIds
 import com.stremflix.data.model.WatchHistory
-import com.stremflix.data.remote.dto.tmdb.*
-import com.stremflix.data.remote.dto.trakt.*
+import com.stremflix.data.remote.dto.tmdb.TmdbContentDto
+import com.stremflix.data.remote.dto.tmdb.TmdbDetailsDto
+import com.stremflix.data.remote.dto.tmdb.TmdbEpisodeDto
+import com.stremflix.data.remote.dto.trakt.TraktContentDto
+import com.stremflix.data.remote.dto.trakt.TraktIdsDto
+import com.stremflix.data.remote.dto.trakt.TraktMovie
+import com.stremflix.data.remote.dto.trakt.TraktShow
 import kotlinx.datetime.LocalDate
 
 // === TMDB Content DTO ===
@@ -254,56 +259,57 @@ fun WatchHistory.toEntity(): WatchHistoryEntity {
     )
 }
 
-fun TraktMovieDto.toDomainItem(): ContentItem {
+fun TraktMovie.toDomainItem(): ContentItem {
     return ContentItem(
-        id = ids.tmdb?.toString() ?: ids.trakt.toString(),
+        id = ids?.tmdb?.toString() ?: ids?.trakt?.toString() ?: "",
         type = ContentType.MOVIE,
-        title = title,
+        title = title ?: "",
         year = year,
         popularity = null,
         posterUrl = null,
         backdropUrl = null,
-        rating = null,
-        contentRating = null,
+        rating = ratings?.percentage?.toDouble()?.div(10.0)?.toFloat(),
+        contentRating = certification,
         synopsis = overview,
-        genres = emptyList(),
+        genres = genres ?: emptyList(),
         cast = emptyList(),
-        runtime = duration,
+        runtime = runtime,
         matchScore = null,
         releaseDate = null,
         externalIds = ExternalIds(
-            imdbId = ids.imdb,
-            tmdbId = ids.tmdb,
-            traktId = ids.trakt,
-            tvdbId = ids.tvdb
+            imdbId = ids?.imdb,
+            tmdbId = ids?.tmdb,
+            traktId = ids?.trakt,
+            tvdbId = ids?.tvdb
         ),
         lastWatched = null,
         watchProgress = 0f
     )
 }
 
-fun TraktShowDto.toDomainItem(): ContentItem {
+// Change receiver type from TraktShowDto to TraktShow
+fun TraktShow.toDomainItem(): ContentItem {
     return ContentItem(
-        id = ids.tmdb?.toString() ?: ids.trakt.toString(),
+        id = ids?.tmdb?.toString() ?: ids?.trakt?.toString() ?: "",
         type = ContentType.SERIES,
-        title = title,
+        title = title ?: "",
         year = year,
         popularity = null,
         posterUrl = null,
         backdropUrl = null,
-        rating = null,
-        contentRating = null,
+        rating = ratings?.percentage?.toDouble()?.div(10.0)?.toFloat(),
+        contentRating = certification,
         synopsis = overview,
-        genres = emptyList(),
+        genres = genres ?: emptyList(),
         cast = emptyList(),
         runtime = null,
         matchScore = null,
         releaseDate = null,
         externalIds = ExternalIds(
-            imdbId = ids.imdb,
-            tmdbId = ids.tmdb,
-            traktId = ids.trakt,
-            tvdbId = ids.tvdb
+            imdbId = ids?.imdb,
+            tmdbId = ids?.tmdb,
+            traktId = ids?.trakt,
+            tvdbId = ids?.tvdb
         ),
         lastWatched = null,
         watchProgress = 0f

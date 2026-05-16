@@ -1,0 +1,90 @@
+package com.stremflix.ui.util
+
+import com.stremflix.core.domain.model.ContentType
+import com.stremflix.core.domain.model.Result
+import com.stremflix.data.local.PreferencesDataSource
+import com.stremflix.data.model.ContentItem
+import com.stremflix.data.model.Episode
+import com.stremflix.data.model.Stream
+import com.stremflix.data.repository.ContentRepository
+import com.stremflix.data.repository.StreamRepository
+import com.stremflix.data.repository.WatchHistoryRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+
+suspend fun handlePlayLogic(
+    item: ContentItem,
+    specificEpisode: Episode? = null,
+    contentRepository: ContentRepository,
+    streamRepository: StreamRepository,
+    watchHistoryRepository: WatchHistoryRepository,
+    preferencesDataSource: PreferencesDataSource,
+    streamsFlow: MutableStateFlow<List<Stream>>,
+    showDialogFlow: MutableStateFlow<Boolean>,
+    onEpisodeDetermined: (Episode) -> Unit = {}
+) {
+    showDialogFlow.value = true
+    streamsFlow.value = emptyList()
+
+    val fullItem = if (item.externalIds.imdbId == null) {
+        (contentRepository.getDetails(item.id, item.type) as? Result.Success)?.data ?: item
+    } else item
+
+    if (fullItem.type == ContentType.MOVIE) {
+        fetchStreams(fullItem, null, streamRepository, preferencesDataSource, streamsFlow)
+    } else {
+        // Use provided episode or determine the "Up Next" episode
+        val episodeToPlay = specificEpisode ?: determineUpNext(fullItem, watchHistoryRepository, contentRepository)
+
+        episodeToPlay?.let { ep ->
+            onEpisodeDetermined(ep)
+            if (ep.watchProgress > 0f) {
+                watchHistoryRepository.updateWatchProgress(fullItem.id, ep.seasonNumber, ep.episodeNumber, ep.watchProgress)
+            }
+            fetchStreams(fullItem, ep, streamRepository, preferencesDataSource, streamsFlow)
+        } ?: run {
+            showDialogFlow.value = false // Close if no episode exists
+        }
+    }
+}
+
+private suspend fun determineUpNext(
+    item: ContentItem,
+    historyRepo: WatchHistoryRepository,
+    contentRepo: ContentRepository
+): Episode? {
+    val lastWatched = historyRepo.getLastWatchedEpisode(item.id) ?:
+    return (contentRepo.getSeasonEpisodes(item.id, 1) as? Result.Success)?.data?.firstOrNull()
+
+    val currentSeasonRes = contentRepo.getSeasonEpisodes(item.id, lastWatched.seasonNumber)
+    val episodes = (currentSeasonRes as? Result.Success)?.data ?: emptyList()
+
+    return if (lastWatched.isInProgress) {
+        // Resume incomplete episode
+        episodes.find { it.episodeNumber == lastWatched.episodeNumber }
+    } else {
+        // Suggest next episode
+        episodes.find { it.episodeNumber == lastWatched.episodeNumber + 1 }
+            ?: (contentRepo.getSeasonEpisodes(item.id, lastWatched.seasonNumber + 1) as? Result.Success)
+                ?.data?.firstOrNull()
+    }
+}
+
+private suspend fun fetchStreams(
+    item: ContentItem,
+    episode: Episode?,
+    streamRepository: StreamRepository,
+    preferencesDataSource: PreferencesDataSource,
+    streamsFlow: MutableStateFlow<List<Stream>>
+) {
+    val prefs = preferencesDataSource.preferencesFlow.first()
+    val result = streamRepository.getStreams(
+        contentId = item.id,
+        contentType = if (item.type == ContentType.MOVIE) "movie" else "series",
+        idType = prefs.defaultIdType,
+        externalIds = item.externalIds,
+        season = episode?.seasonNumber,
+        episode = episode?.episodeNumber
+    )
+    if (result is Result.Success) streamsFlow.value = result.data
+}

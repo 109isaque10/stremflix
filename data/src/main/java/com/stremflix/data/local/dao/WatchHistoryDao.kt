@@ -21,6 +21,9 @@ interface WatchHistoryDao {
     @Query("SELECT * FROM watch_history WHERE seriesId = :seriesId ORDER BY seasonNumber ASC, episodeNumber ASC")
     suspend fun getHistoryForSeries(seriesId: String): List<WatchHistoryEntity>
 
+    @Query("SELECT * FROM watch_history ORDER BY lastWatchedAt DESC")
+    fun getAllHistory(): Flow<List<WatchHistoryEntity>>
+
     @Query("SELECT * FROM watch_history WHERE seriesId = :seriesId AND seasonNumber = :seasonNumber AND episodeNumber = :episodeNumber")
     suspend fun getEpisode(seriesId: String, seasonNumber: Int, episodeNumber: Int): WatchHistoryEntity?
 

@@ -1,5 +1,3 @@
-// common-ui/src/main/java/com/stremflix/ui/movies/MoviesViewModel.kt
-
 package com.stremflix.ui.movies
 
 import android.content.Context
@@ -8,13 +6,16 @@ import androidx.lifecycle.viewModelScope
 import com.stremflix.core.domain.model.ContentType
 import com.stremflix.core.domain.model.Result
 import com.stremflix.core.util.AppDispatchers
-import com.stremflix.data.model.ContentItem
 import com.stremflix.data.repository.ContentRepository
 import com.stremflix.data.repository.TraktRepository
 import com.stremflix.ui.R
+import com.stremflix.ui.home.ContentRow
+import com.stremflix.ui.home.MoviesUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
