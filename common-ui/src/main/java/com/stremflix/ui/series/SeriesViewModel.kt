@@ -13,6 +13,8 @@ import com.stremflix.ui.home.ContentRow
 import com.stremflix.ui.home.SeriesUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,70 +40,42 @@ class SeriesViewModel @Inject constructor(
         viewModelScope.launch(dispatchers.io) {
             _uiState.value = SeriesUiState.Loading
 
-            val rows = mutableListOf<ContentRow>()
-
             try {
-                // 1. Trending Series (TMDB - Week)
-                val trending = contentRepository.getTrending(ContentType.SERIES, "week")
-                if (trending is Result.Success && trending.data.isNotEmpty()) {
-                    rows.add(ContentRow(
-                        title = context.getString(R.string.row_trending_series),
-                        items = trending.data
-                    ))
-                }
+                val rows = mutableListOf<ContentRow>()
 
-                // 2. Popular Series (TMDB)
-                val popular = contentRepository.getPopular(ContentType.SERIES)
-                if (popular is Result.Success && popular.data.isNotEmpty()) {
-                    rows.add(ContentRow(
-                        title = context.getString(R.string.row_popular_series),
-                        items = popular.data
-                    ))
-                }
+                coroutineScope {
+                    val trendingDef = async { contentRepository.getTrending(ContentType.SERIES, "week") }
+                    val popularDef = async { contentRepository.getPopular(ContentType.SERIES) }
+                    val topRatedDef = async { contentRepository.getTopRated(ContentType.SERIES) }
+                    val airingDef = async { contentRepository.getCurrentlyAiring() }
 
-                // 3. Top Rated TV Shows (TMDB)
-                val topRated = contentRepository.getTopRated(ContentType.SERIES)
-                if (topRated is Result.Success && topRated.data.isNotEmpty()) {
-                    rows.add(ContentRow(
-                        title = context.getString(R.string.row_top_rated_tv),
-                        items = topRated.data
-                    ))
-                }
+                    val isTraktEnabled = checkTraktEnabled()
+                    val upcomingDef = async {
+                        if (isTraktEnabled) traktRepository.getUpcomingFromCalendar()
+                        else contentRepository.getUpcomingSeries()
+                    }
+                    val anticipatedDef = async {
+                        if (isTraktEnabled) traktRepository.getMostAnticipatedShows()
+                        else contentRepository.getAnticipatedSeries()
+                    }
 
-                // 4. Currently Airing (TMDB)
-                val currentlyAiring = contentRepository.getCurrentlyAiring()
-                if (currentlyAiring is Result.Success && currentlyAiring.data.isNotEmpty()) {
-                    rows.add(ContentRow(
-                        title = context.getString(R.string.row_currently_airing),
-                        items = currentlyAiring.data
-                    ))
-                }
+                    val trending = trendingDef.await()
+                    if (trending is Result.Success && trending.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_trending_series), trending.data))
 
-                // 5. Upcoming (Trakt calendar or TMDB fallback)
-                val isTraktEnabled = checkTraktEnabled()
-                val upcoming = if (isTraktEnabled) {
-                    traktRepository.getUpcomingFromCalendar()
-                } else {
-                    contentRepository.getUpcomingSeries()
-                }
-                if (upcoming is Result.Success && upcoming.data.isNotEmpty()) {
-                    rows.add(ContentRow(
-                        title = context.getString(R.string.row_upcoming_series),
-                        items = upcoming.data
-                    ))
-                }
+                    val popular = popularDef.await()
+                    if (popular is Result.Success && popular.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_popular_series), popular.data))
 
-                // 6. Most Anticipated (Trakt or TMDB fallback)
-                val anticipated = if (isTraktEnabled) {
-                    traktRepository.getMostAnticipatedShows()
-                } else {
-                    contentRepository.getAnticipatedSeries()
-                }
-                if (anticipated is Result.Success && anticipated.data.isNotEmpty()) {
-                    rows.add(ContentRow(
-                        title = context.getString(R.string.row_most_anticipated_shows),
-                        items = anticipated.data
-                    ))
+                    val topRated = topRatedDef.await()
+                    if (topRated is Result.Success && topRated.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_top_rated_tv), topRated.data))
+
+                    val airing = airingDef.await()
+                    if (airing is Result.Success && airing.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_currently_airing), airing.data))
+
+                    val upcoming = upcomingDef.await()
+                    if (upcoming is Result.Success && upcoming.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_upcoming_series), upcoming.data))
+
+                    val anticipated = anticipatedDef.await()
+                    if (anticipated is Result.Success && anticipated.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_most_anticipated_shows), anticipated.data))
                 }
 
                 _uiState.value = SeriesUiState.Success(rows)

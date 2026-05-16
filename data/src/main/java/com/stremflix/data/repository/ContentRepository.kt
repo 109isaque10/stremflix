@@ -57,22 +57,20 @@ class ContentRepository @Inject constructor(
     suspend fun getDetails(contentId: String, contentType: ContentType): Result<out ContentItem> {
         // Try cache first (Room)
         val cachedEntity = contentDao.getContentById(contentId)
-        if (cachedEntity != null) {
+        if (cachedEntity != null && !cachedEntity.imdbId.isNullOrEmpty() && !cachedEntity.posterUrl.isNullOrEmpty()) {
             return Result.Success(cachedEntity.toDomainItem())
         }
 
-        // If not cached, fetch from API
-        val id = contentId.toIntOrNull() ?: return Result.Error(ApiError(message = "Invalid ID"))
-
-        val dto = if (contentType == ContentType.MOVIE) tmdbApi.getMovieDetails(id)
-        else tmdbApi.getTvDetails(id)
-
-        val item = dto.toDomainItem(contentType)
-
-        // Save to cache
-        contentDao.insertContent(item.toEntity())
-
-        return Result.Success(item)
+        return try {
+            val id = contentId.toIntOrNull() ?: return Result.Error(ApiError(message = "Invalid ID"))
+            val dto = if (contentType == ContentType.MOVIE) tmdbApi.getMovieDetails(id) else tmdbApi.getTvDetails(id)
+            val item = dto.toDomainItem(contentType)
+            contentDao.insertContent(item.toEntity()) // Save full item
+            Result.Success(item)
+        } catch (e: Exception) {
+            // Fallback to basic cache if network fails completely
+            if (cachedEntity != null) Result.Success(cachedEntity.toDomainItem()) else Result.Error(ApiError.fromThrowable(e))
+        }
     }
 
     suspend fun search(query: String, contentType: ContentType? = null): Result<out List<ContentItem>> {

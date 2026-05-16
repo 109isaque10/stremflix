@@ -31,7 +31,7 @@ suspend fun handlePlayLogic(
     } else item
 
     if (fullItem.type == ContentType.MOVIE) {
-        fetchStreams(fullItem, null, streamRepository, preferencesDataSource, streamsFlow)
+        fetchStreams(fullItem, null, streamRepository, preferencesDataSource, streamsFlow, showDialogFlow)
     } else {
         // Use provided episode or determine the "Up Next" episode
         val episodeToPlay = specificEpisode ?: determineUpNext(fullItem, watchHistoryRepository, contentRepository)
@@ -41,7 +41,7 @@ suspend fun handlePlayLogic(
             if (ep.watchProgress > 0f) {
                 watchHistoryRepository.updateWatchProgress(fullItem.id, ep.seasonNumber, ep.episodeNumber, ep.watchProgress)
             }
-            fetchStreams(fullItem, ep, streamRepository, preferencesDataSource, streamsFlow)
+            fetchStreams(fullItem, ep, streamRepository, preferencesDataSource, streamsFlow, showDialogFlow)
         } ?: run {
             showDialogFlow.value = false // Close if no episode exists
         }
@@ -75,7 +75,8 @@ private suspend fun fetchStreams(
     episode: Episode?,
     streamRepository: StreamRepository,
     preferencesDataSource: PreferencesDataSource,
-    streamsFlow: MutableStateFlow<List<Stream>>
+    streamsFlow: MutableStateFlow<List<Stream>>,
+    showDialogFlow: MutableStateFlow<Boolean>
 ) {
     val prefs = preferencesDataSource.preferencesFlow.first()
     val result = streamRepository.getStreams(
@@ -86,5 +87,10 @@ private suspend fun fetchStreams(
         season = episode?.seasonNumber,
         episode = episode?.episodeNumber
     )
-    if (result is Result.Success) streamsFlow.value = result.data
+    if (result is Result.Success && result.data.isNotEmpty()) {
+        streamsFlow.value = result.data
+    } else {
+        // Fix: Stop the infinite loading spinner if no streams are found
+        showDialogFlow.value = false
+    }
 }

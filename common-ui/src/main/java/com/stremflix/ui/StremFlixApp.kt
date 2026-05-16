@@ -1,18 +1,18 @@
 package com.stremflix.ui
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.stringResource
-import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.stremflix.ui.navigation.*
 import com.stremflix.ui.theme.NetflixBlack
 import com.stremflix.ui.theme.StremFlixTheme
-import androidx.compose.ui.Alignment
 
 @Composable
 fun StremFlixApp(
@@ -21,6 +21,10 @@ fun StremFlixApp(
     StremFlixTheme {
         Surface(color = NetflixBlack) {
             val navController = rememberNavController()
+
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route
+            val isPlayerScreen = currentRoute?.equals("PlaybackRoute") == true
 
             // Determine navigation items based on mode
             val navItems = if (isTvMode) {
@@ -43,7 +47,7 @@ fun StremFlixApp(
 
             Scaffold(
                 bottomBar = {
-                    if (!isTvMode) {
+                    if (!isTvMode && !isPlayerScreen) {
                         MobileBottomNavigation(
                             navController = navController,
                             items = navItems as List<BottomNavItem>

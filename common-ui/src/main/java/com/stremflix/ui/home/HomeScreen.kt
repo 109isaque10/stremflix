@@ -1,6 +1,5 @@
 package com.stremflix.ui.home
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -18,39 +18,77 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.stremflix.core.domain.model.ContentType
-import com.stremflix.data.model.ContentItem
-import com.stremflix.data.model.Stream
 import com.stremflix.ui.R
 import com.stremflix.ui.details.StreamSelectionDialog
+import com.stremflix.ui.movies.MoviesViewModel
+import com.stremflix.ui.mylist.MyListViewModel
+import com.stremflix.ui.series.SeriesViewModel
 import com.stremflix.ui.theme.NetflixBlack
 import com.stremflix.ui.theme.NetflixTextPrimary
 import com.stremflix.ui.theme.NetflixTextSecondary
 
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = hiltViewModel(),
     onNavigateToDetails: (String, String?, String, String) -> Unit,
     onNavigateToPlayback: (String, String, String?, String, String) -> Unit,
     isTvMode: Boolean = false,
-    filterType: String? = null,
+    filterType: String = "home",
+    homeViewModel: HomeViewModel = hiltViewModel(),
+    moviesViewModel: MoviesViewModel = hiltViewModel(),
+    seriesViewModel: SeriesViewModel = hiltViewModel(),
+    myListViewModel: MyListViewModel = hiltViewModel(),
     onNavigateToSettings: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val showStreamDialog by viewModel.showStreamDialog.collectAsState()
-    val streams by viewModel.streams.collectAsState()
+    val homeState by homeViewModel.uiState.collectAsState()
+    val moviesState by moviesViewModel.uiState.collectAsState()
+    val seriesState by seriesViewModel.uiState.collectAsState()
+    val myListState by myListViewModel.uiState.collectAsState()
+
+    val unifiedState: HomeUiState = remember(filterType, homeState, moviesState, seriesState, myListState) {
+        when (filterType) {
+            "movie" -> when (moviesState) {
+                is MoviesUiState.Loading -> HomeUiState.Loading
+                is MoviesUiState.Success -> HomeUiState.Success((moviesState as MoviesUiState.Success).rows)
+                is MoviesUiState.Error -> HomeUiState.Error((moviesState as MoviesUiState.Error).message)
+            }
+
+            "tv" -> when (seriesState) {
+                is SeriesUiState.Loading -> HomeUiState.Loading
+                is SeriesUiState.Success -> HomeUiState.Success((seriesState as SeriesUiState.Success).rows)
+                is SeriesUiState.Error -> HomeUiState.Error((seriesState as SeriesUiState.Error).message)
+            }
+
+//            "list" -> when (myListState) {
+//                is MyListUiState.Loading -> HomeUiState.Loading
+//                is MyListUiState.Success -> HomeUiState.Success((myListState as MyListUiState.Success).rows)
+//                is MyListUiState.Error -> HomeUiState.Error((myListState as MyListUiState.Error).message)
+//            }
+
+            else -> homeState // Default to standard Home
+        } as HomeUiState
+    }
+
+    val showStreamDialog by homeViewModel.showStreamDialog.collectAsState()
+    val streams by homeViewModel.streams.collectAsState()
+
+    // Observe the correct state based on the tab!
+    val rows = when (filterType) {
+        "movie" -> moviesViewModel.uiState.collectAsState().value.let { if (it is MoviesUiState.Success) it.rows else emptyList() }
+        "tv" -> seriesViewModel.uiState.collectAsState().value.let { if (it is SeriesUiState.Success) it.rows else emptyList() }
+        else -> homeViewModel.uiState.collectAsState().value.let { if (it is HomeUiState.Success) it.rows else emptyList() }
+    }
 
     if (showStreamDialog) {
         StreamSelectionDialog(
             streams = streams,
-            onDismiss = { viewModel.dismissStreamDialog() },
+            onDismiss = { homeViewModel.dismissStreamDialog() },
             onStreamSelected = { stream ->
-                viewModel.onStreamSelected(stream)
+                homeViewModel.onStreamSelected(stream)
                 // Get the current hero item (you'll need to track this in ViewModel)
                 // For now, navigate with placeholder values
                 if (stream != null) {
                     // You need to store the selected item in ViewModel
-                    val item = viewModel.currentSelectedItem
+                    val item = homeViewModel.currentSelectedItem
                     if (item != null) {
                         onNavigateToPlayback(stream.url, item.title, item.synopsis, item.id, item.type.name.lowercase())
                     }
@@ -65,8 +103,9 @@ fun HomeScreen(
                 "tv" -> stringResource(R.string.nav_tv_shows)
                 "movie" -> stringResource(R.string.nav_movies)
                 "list" -> stringResource(R.string.nav_my_list)
-                else -> stringResource(R.string.app_name)
+                else -> ""
             }, color = NetflixTextPrimary) },
+            navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.tv_banner), modifier = Modifier.fillMaxSize(), contentDescription = "StremFlix") },
             actions = {
                 // Settings button in top bar
                 IconButton(onClick = onNavigateToSettings) {
@@ -90,7 +129,7 @@ fun HomeScreen(
                 .padding(padding)  // ADD THIS to prevent content cutting
                 .background(NetflixBlack)
         ) {
-            when (val state = uiState) {
+            when (unifiedState) {
                 is HomeUiState.Loading -> {
                     CircularProgressIndicator(
                         color = NetflixTextPrimary,
@@ -119,7 +158,7 @@ fun HomeScreen(
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = state.message,
+                            text = unifiedState.message,
                             style = MaterialTheme.typography.bodyMedium,
                             color = NetflixTextSecondary,
                             textAlign = TextAlign.Center
@@ -127,7 +166,7 @@ fun HomeScreen(
                     }
                 }
                 is HomeUiState.Success -> {
-                    if (state.rows.isEmpty()) {
+                    if (rows.isEmpty()) {
                         // Empty state
                         Column(
                             modifier = Modifier
@@ -145,12 +184,12 @@ fun HomeScreen(
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                             // Hero section
-                            val firstRow = state.rows.firstOrNull()
+                            val firstRow = rows.firstOrNull()
                             if (firstRow != null && firstRow.items.isNotEmpty() && filterType == null) {
                                 item {
                                     HeroCard(
                                         item = firstRow.items.first(),
-                                        onPlayClick = { viewModel.onPlayClicked(firstRow.items.first()) },
+                                        onPlayClick = { homeViewModel.onPlayClicked(firstRow.items.first()) },
                                         onMoreInfoClick = {
                                             onNavigateToDetails(
                                                 firstRow.items.first().title,
@@ -167,7 +206,7 @@ fun HomeScreen(
 
                             // Content rows
                             items(
-                                items = state.rows,
+                                items = unifiedState.rows,
                                 key = { it.title }
                             ) { rowData ->
                                 ContentRow(

@@ -15,6 +15,9 @@ import com.stremflix.ui.R
 import com.stremflix.ui.util.handlePlayLogic
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -104,62 +107,30 @@ class HomeViewModel @Inject constructor(
             _uiState.value = HomeUiState.Loading
 
             val rows = mutableListOf<ContentRow>()
+            val isTraktEnabled = checkTraktEnabled()
 
             try {
-                // 1. Continue Watching (from local DB)
-                val continueWatching = loadContinueWatching()
-                if (continueWatching.isNotEmpty()) {
-                    rows.add(ContentRow(
-                        title = context.getString(R.string.row_continue_watching),
-                        items = continueWatching
-                    ))
-                }
+                coroutineScope {
+                    val continueWatchingDef = async { loadContinueWatching() }
+                    val becauseYouWatchedDef = async { loadBecauseYouWatched() }
+                    val recommendationsDef = async { if (isTraktEnabled) loadTraktRecommendations() else emptyList() }
+                    val trendingDef = async { if (isTraktEnabled) loadTraktTrending() else loadTmdbTrendingToday() }
+                    val mostWatchedDef = async { if (isTraktEnabled) loadTraktMostWatchedWeekly() else loadTmdbTrendingWeek() }
 
-                // 2. Because You Watched [X] (TMDB recommendations)
-                val becauseYouWatched = loadBecauseYouWatched()
-                if (becauseYouWatched.isNotEmpty()) {
-                    rows.add(ContentRow(
-                        title = context.getString(R.string.row_because_you_watched),
-                        items = becauseYouWatched
-                    ))
-                }
+                    val continueWatching = continueWatchingDef.await()
+                    if (continueWatching.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_continue_watching), continueWatching))
 
-                // 3. Recommended for You (Trakt, if enabled)
-                val isTraktEnabled = checkTraktEnabled()
-                if (isTraktEnabled) {
-                    val traktRecommendations = loadTraktRecommendations()
-                    if (traktRecommendations.isNotEmpty()) {
-                        rows.add(ContentRow(
-                            title = context.getString(R.string.row_recommended_for_you),
-                            items = traktRecommendations
-                        ))
-                    }
-                }
+                    val becauseYouWatched = becauseYouWatchedDef.await()
+                    if (becauseYouWatched.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_because_you_watched), becauseYouWatched))
 
-                // 4. Trending Now (Trakt or TMDB fallback)
-                val trending = if (isTraktEnabled) {
-                    loadTraktTrending()
-                } else {
-                    loadTmdbTrendingToday()
-                }
-                if (trending.isNotEmpty()) {
-                    rows.add(ContentRow(
-                        title = context.getString(R.string.row_trending_now),
-                        items = trending
-                    ))
-                }
+                    val traktRecommendations = recommendationsDef.await()
+                    if (traktRecommendations.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_recommended_for_you), traktRecommendations))
 
-                // 5. Most Watched This Week (Trakt or TMDB fallback)
-                val mostWatched = if (isTraktEnabled) {
-                    loadTraktMostWatchedWeekly()
-                } else {
-                    loadTmdbTrendingWeek()
-                }
-                if (mostWatched.isNotEmpty()) {
-                    rows.add(ContentRow(
-                        title = context.getString(R.string.row_most_watched_week),
-                        items = mostWatched
-                    ))
+                    val trending = trendingDef.await()
+                    if (trending.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_trending_now), trending))
+
+                    val mostWatched = mostWatchedDef.await()
+                    if (mostWatched.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_most_watched_week), mostWatched))
                 }
 
                 _uiState.value = HomeUiState.Success(rows)
@@ -222,43 +193,56 @@ class HomeViewModel @Inject constructor(
             .firstOrNull { it.isCompleted } ?: return emptyList()
 
         val recommendations = if (lastFinished.seasonNumber == 0) {
-            contentRepository.getRecommendations(lastFinished.seriesId, ContentType.MOVIE)
+            contentRepository.getRecommendations(lastFinished.seriesId, ContentType.MOVIE).dataOrNull() ?: emptyList()
         } else {
-            contentRepository.getRecommendations(lastFinished.seriesId, ContentType.SERIES)
+            contentRepository.getRecommendations(lastFinished.seriesId, ContentType.SERIES).dataOrNull() ?: emptyList()
         }
 
-        return (recommendations as? Result.Success)?.data ?: emptyList()
+        return populateImages(recommendations)
     }
 
     private suspend fun loadTraktRecommendations(): List<ContentItem> {
-        val result = traktRepository.getRecommendations()
-        return result.dataOrNull() ?: emptyList()
+        val result = traktRepository.getRecommendations().dataOrNull() ?: emptyList()
+        return populateImages(result)
     }
 
     private suspend fun loadTraktTrending(): List<ContentItem> {
-        val result = traktRepository.getTrending()
-        return result.dataOrNull() ?: emptyList()
+        val result = traktRepository.getTrending().dataOrNull() ?: emptyList()
+        return populateImages(result)
     }
 
     private suspend fun loadTmdbTrendingToday(): List<ContentItem> {
-        val movies = contentRepository.getTrending(ContentType.MOVIE, "day")
-        val series = contentRepository.getTrending(ContentType.SERIES, "day")
-        return (movies.dataOrNull() ?: emptyList()) + (series.dataOrNull() ?: emptyList())
+        val movies = contentRepository.getTrending(ContentType.MOVIE, "day").dataOrNull() ?: emptyList()
+        val series = contentRepository.getTrending(ContentType.SERIES, "day").dataOrNull() ?: emptyList()
+        return populateImages(movies) + populateImages(series)
     }
 
     private suspend fun loadTmdbTrendingWeek(): List<ContentItem> {
-        val movies = contentRepository.getTrending(ContentType.MOVIE, "week")
-        val series = contentRepository.getTrending(ContentType.SERIES, "week")
-        return (movies.dataOrNull() ?: emptyList()) + (series.dataOrNull() ?: emptyList())
+        val movies = contentRepository.getTrending(ContentType.MOVIE, "week").dataOrNull() ?: emptyList()
+        val series = contentRepository.getTrending(ContentType.SERIES, "week").dataOrNull() ?: emptyList()
+        return populateImages(movies) + populateImages(series)
     }
 
     private suspend fun loadTraktMostWatchedWeekly(): List<ContentItem> {
-        val result = traktRepository.getMostWatchedWeekly()
-        return result.dataOrNull() ?: emptyList()
+        val result = traktRepository.getMostWatchedWeekly().dataOrNull() ?: emptyList()
+        return populateImages(result)
     }
 
     private suspend fun checkTraktEnabled(): Boolean {
         val prefs = preferencesDataSource.preferencesFlow.first()
         return !prefs.traktClientId.isNullOrBlank()
+    }
+
+    private suspend fun populateImages(items: List<ContentItem>): List<ContentItem> {
+        return coroutineScope {
+            items.map { item ->
+                async {
+                    // If Trakt didn't give us an image, fetch it quickly from TMDB
+                    if (item.posterUrl.isNullOrEmpty()) {
+                        (contentRepository.getDetails(item.id, item.type) as? Result.Success)?.data ?: item
+                    } else item
+                }
+            }.awaitAll()
+        }
     }
 }
