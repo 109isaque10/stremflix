@@ -1,11 +1,8 @@
 package com.stremflix.ui.details
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -15,18 +12,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import coil.compose.AsyncImage
 import com.stremflix.data.model.Episode
-import com.stremflix.data.model.Stream
 import com.stremflix.ui.R
-import com.stremflix.ui.theme.NetflixBlack
 import com.stremflix.ui.theme.NetflixRed
-import com.stremflix.ui.theme.NetflixSurfaceLight
 import com.stremflix.ui.theme.NetflixTextPrimary
 import com.stremflix.ui.theme.NetflixTextSecondary
 
@@ -132,10 +126,11 @@ private fun EpisodeRow(
                 .background(Color(0xFF333333), RoundedCornerShape(4.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "${episode.episodeNumber}",
-                style = MaterialTheme.typography.bodyLarge,
-                color = NetflixTextSecondary
+            AsyncImage(
+                model = episode.thumbnailUrl,
+                contentDescription = "Episode Thumbnail for E${episode.episodeNumber}",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize()
             )
         }
 

@@ -156,7 +156,7 @@ fun TraktContentDto.toDomainItem(): ContentItem {
     val ids = movie?.ids ?: show?.ids ?: TraktIdsDto(trakt = 0, slug = null, imdb = null, tmdb = null, tvdb = null)
 
     return ContentItem(
-        id = ids.trakt.toString(),
+        id = ids.tmdb?.toString() ?: ids.trakt.toString(),
         type = type,
         title = title,
         year = movie?.year ?: show?.year,

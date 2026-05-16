@@ -107,9 +107,6 @@ class ContentRepository @Inject constructor(
         }
     }
 
-    // data/src/main/java/com/stremflix/data/repository/ContentRepository.kt
-
-    // Add these methods to ContentRepository class
     suspend fun getTopRated(contentType: ContentType, page: Int = 1): Result<List<ContentItem>> {
         val response = if (contentType == ContentType.MOVIE) tmdbApi.getTopRatedMovies(page)
         else tmdbApi.getTopRatedTv(page)

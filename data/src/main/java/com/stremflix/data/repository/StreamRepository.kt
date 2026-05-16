@@ -29,11 +29,13 @@ class StreamRepository @Inject constructor(
             val response = stremioApi.getStreams(contentType, streamId)
             val streams = response.streams.mapNotNull { dto ->
                 dto.url?.let {
+                    val combinedText = "${dto.name} ${dto.title} ${dto.description} ${dto.behaviorHints?.filename}".lowercase()
+
                     Stream(
                         description = dto.description,
                         url = it,
-                        quality = dto.quality ?: extractQuality(dto.title),
-                        language = extractLanguage(dto.title), // Default
+                        quality = extractQuality(combinedText),
+                        language = extractLanguage(combinedText), // Default
                         behaviorHints = dto.behaviorHints?.let { bh ->
                             com.stremflix.data.model.BehaviorHints(bh.bingeGroup, bh.notWebReady, bh.proxyHeaders?.request)
                         }
@@ -60,21 +62,23 @@ class StreamRepository @Inject constructor(
         episode: Int?,
         season: Int?
     ): String? {
+        val suffix = if (season != null && episode != null) ":$season:$episode" else ""
         return when (idType) {
             IdType.IMDB -> {
                 // User prefers IMDB
                 val imdbId = externalIds?.imdbId
 
                 if (!imdbId.isNullOrEmpty()) {
-                    if (imdbId.startsWith("tt")) "$imdbId:$season:$episode" else "tt$imdbId:$season:$episode"
+                    val formattedImdb = if (imdbId.startsWith("tt")) imdbId else "tt$imdbId"
+                    "$formattedImdb$suffix"
                 } else {
                     // Try to construct from contentId if it looks like IMDB
                     if (contentId.startsWith("tt")) {
-                        contentId
+                        "$contentId$suffix"
                     } else {
                         // Try TMDB format as last resort
                         externalIds?.tmdbId?.let { tmdb ->
-                            "tmdb:$tmdb"
+                            "tmdb:$tmdb$suffix"
                         }
                     }
                 }
@@ -85,31 +89,40 @@ class StreamRepository @Inject constructor(
                 val tmdbId = externalIds?.tmdbId
 
                 if (tmdbId != null && tmdbId > 0) {
-                    "tmdb:$tmdbId:$season:$episode"
+                    "tmdb:$tmdbId$suffix"
                 } else {
                     // Try to parse contentId as number
                     contentId.toIntOrNull()?.let { num ->
-                        "tmdb:$num:$season:$episode"
+                        "tmdb:$num$suffix"
                     } ?: externalIds?.imdbId?.let { imdb ->
-                        "$imdb:$season:$episode"
+                        val formattedImdb = if (imdb.startsWith("tt")) imdb else "tt$imdb"
+                        "$formattedImdb$suffix"
                     }
                 }
             }
         }
     }
 
-    private fun extractQuality(title: String?): String? {
-        return title?.let {
-            val qualityPattern = Regex("(\\d{3,4}p|4K|HD|HDR)", RegexOption.IGNORE_CASE)
-            qualityPattern.find(it)?.value
+    private fun extractQuality(text: String): String {
+        return when {
+            text.contains("2160p") || text.contains("4k") || text.contains("uhd") -> "4K"
+            text.contains("1080p") || text.contains("fhd") -> "FHD"
+            text.contains("720p") || text.contains("hd") -> "HD"
+            text.contains("480p") || text.contains("sd") -> "SD"
+            else -> "Unknown"
         }
     }
 
-    private fun extractLanguage(title: String?): String? {
-        // Extract language from stream title if present
-        return title?.let {
-            val langPattern = Regex("\\b(en|es|fr|de|pt|it|ja|ko|ru|zh)\\b", RegexOption.IGNORE_CASE)
-            langPattern.find(it)?.value?.lowercase()
+    private fun extractLanguage(text: String): String {
+        // Checked in order of priority. "Dual" overrides "Dublado".
+        return when {
+            text.contains("dual") -> "dual audio"
+            text.contains("multi") -> "multi audio"
+            text.contains("dublado") || text.contains(" dub ") || text.contains("pt-br") || text.contains("ptbr")  || text.contains("brazillian") || text.contains("nacional") -> "Dublado"
+            text.contains("legendado") || text.contains(" leg ") -> "Legendado"
+            text.contains(" en ") || text.contains("english") -> "English"
+            text.contains(" es ") || text.contains("spanish") || text.contains("latino") -> "Spanish"
+            else -> "Original" // Safe default if no tags are found
         }
     }
 }

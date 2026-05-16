@@ -209,48 +209,6 @@ fun CustomPlayerControls(
                         .fillMaxWidth()
                         .padding(horizontal = 40.dp, vertical = 24.dp)
                 ) {
-                    val safeDuration = if (duration > 0L) duration.toFloat() else 100f
-                    val safePosition = currentPosition.toFloat().coerceIn(0f, safeDuration)
-
-                    // Seek Bar
-                    Slider(
-                        value = safePosition,
-                        onValueChange = { ratio ->
-                            if (duration > 0) viewModel.onSeekTo(ratio.toLong())
-                        },
-                        valueRange = 0f..safeDuration,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = SliderDefaults.colors(
-                            thumbColor = NetflixRed,
-                            activeTrackColor = NetflixRed,
-                            inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                        )
-                    )
-
-                    // Time Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = formatTime(currentPosition),
-                            color = NetflixTextPrimary,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-
-                        // Skip Intro / Next Episode buttons could go here
-                        Text(
-                            text = formatTime(duration),
-                            color = NetflixTextPrimary.copy(alpha = 0.7f),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-
                     // Bottom Row Buttons
                     Column(
                         modifier = Modifier
@@ -305,6 +263,7 @@ fun CustomPlayerControls(
 
                             val safeDuration = if (duration > 0L) duration.toFloat() else 100f
                             val progressRatio = currentPosition.toFloat().coerceIn(0f, 1f)
+                            val remainingTime = duration-currentPosition
 
                             LinearProgressIndicator(
                                 progress = { progressRatio },
@@ -313,10 +272,10 @@ fun CustomPlayerControls(
                                     .height(4.dp) // Very thin, Netflix style
                                     .pointerInput(Unit) {
                                         detectTapGestures { offset ->
-                                            if (duration > 0L) {
+                                            if (safeDuration > 0L) {
                                                 // Calculate the percentage of where the user tapped on the bar
                                                 val tapPercentage = (offset.x / size.width).coerceIn(0f, 1f)
-                                                val newPosition = (tapPercentage * duration).toLong()
+                                                val newPosition = (tapPercentage * safeDuration).toLong()
                                                 viewModel.onSeekTo(newPosition)
                                             }
                                         }
@@ -328,7 +287,7 @@ fun CustomPlayerControls(
 
                             // Netflix shows remaining time, but duration is fine too
                             Text(
-                                text = formatTime(duration),
+                                text = formatTime(remainingTime),
                                 color = Color.White.copy(alpha = 0.7f),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium

@@ -16,16 +16,14 @@ data class StremioStreamDto(
     val name: String?,
     val title: String?,
     val behaviorHints: StremioBehaviorHintsDto?
-) {
-    val quality: String?
-        get() = title?.substringBefore(" ") ?: name?.substringBefore(" ")
-}
+)
 
 @Serializable
 data class StremioBehaviorHintsDto(
     @SerialName("bingeGroup") val bingeGroup: String?,
     @SerialName("notWebReady") val notWebReady: Boolean?,
-    @SerialName("proxyHeaders") val proxyHeaders: StremioProxyHeadersDto?
+    @SerialName("proxyHeaders") val proxyHeaders: StremioProxyHeadersDto?,
+    @SerialName("filename") val filename: String?
 )
 
 @Serializable

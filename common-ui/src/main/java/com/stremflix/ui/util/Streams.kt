@@ -26,24 +26,25 @@ suspend fun handlePlayLogic(
     showDialogFlow.value = true
     streamsFlow.value = emptyList()
 
-    val fullItem = if (item.externalIds.imdbId == null) {
-        (contentRepository.getDetails(item.id, item.type) as? Result.Success)?.data ?: item
-    } else item
-
-    if (fullItem.type == ContentType.MOVIE) {
-        fetchStreams(fullItem, null, streamRepository, preferencesDataSource, streamsFlow, showDialogFlow)
+    if (item.type == ContentType.MOVIE) {
+        fetchStreams(item, null, streamRepository, preferencesDataSource, streamsFlow, showDialogFlow)
     } else {
         // Use provided episode or determine the "Up Next" episode
-        val episodeToPlay = specificEpisode ?: determineUpNext(fullItem, watchHistoryRepository, contentRepository)
+        val episodeToPlay = specificEpisode ?: determineUpNext(item, watchHistoryRepository, contentRepository)
 
         episodeToPlay?.let { ep ->
             onEpisodeDetermined(ep)
             if (ep.watchProgress > 0f) {
-                watchHistoryRepository.updateWatchProgress(fullItem.id, ep.seasonNumber, ep.episodeNumber, ep.watchProgress)
+                watchHistoryRepository.updateWatchProgress(item.id, ep.seasonNumber, ep.episodeNumber, ep.watchProgress)
             }
-            fetchStreams(fullItem, ep, streamRepository, preferencesDataSource, streamsFlow, showDialogFlow)
+            fetchStreams(item, ep, streamRepository, preferencesDataSource, streamsFlow, showDialogFlow)
         } ?: run {
-            showDialogFlow.value = false // Close if no episode exists
+//            showDialogFlow.value = false // Close if no episode exists
+            streamsFlow.value = listOf(
+                Stream(
+                    "No Episode Found", "", "", "", null
+                )
+            )
         }
     }
 }
@@ -91,6 +92,11 @@ private suspend fun fetchStreams(
         streamsFlow.value = result.data
     } else {
         // Fix: Stop the infinite loading spinner if no streams are found
-        showDialogFlow.value = false
+//        showDialogFlow.value = false
+        streamsFlow.value = listOf(
+            Stream(
+                "No Streams Found\nID: ${item.id} S${episode?.seasonNumber}E${episode?.episodeNumber}", "", "", "", null
+            )
+        )
     }
 }

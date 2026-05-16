@@ -1,6 +1,7 @@
 package com.stremflix.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -24,7 +25,7 @@ fun StremFlixApp(
 
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
-            val isPlayerScreen = currentRoute?.equals("PlaybackRoute") == true
+            val isPlayerScreen = currentRoute?.contains("playback") == true
 
             // Determine navigation items based on mode
             val navItems = if (isTvMode) {
@@ -57,7 +58,8 @@ fun StremFlixApp(
                 containerColor = NetflixBlack,
                 contentColor = Color.White
             ) { paddingValues ->
-                Box(modifier = Modifier.padding(paddingValues)) {
+                val boxModifier = if (isPlayerScreen) Modifier.fillMaxSize() else Modifier.padding(paddingValues)
+                Box(modifier = boxModifier) {
                     StremFlixNavGraph(
                         navController = navController,
                         isTvMode = isTvMode
