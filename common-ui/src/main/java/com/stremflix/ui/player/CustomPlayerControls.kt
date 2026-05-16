@@ -47,6 +47,18 @@ fun CustomPlayerControls(
     var isVisible by remember { mutableStateOf(true) }
     var currentPosition by remember { mutableStateOf(0L) }
     var duration by remember { mutableStateOf(0L) }
+    var showExtendedInfo by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState) {
+        if (uiState !is PlaybackUiState.Playing) {
+            // If paused, wait 10 seconds, then show the info
+            delay(10000L)
+            showExtendedInfo = true
+        } else {
+            // If playing, instantly hide the info and reset the timer
+            showExtendedInfo = false
+        }
+    }
 
     // Update progress/timer
     LaunchedEffect(player) {
@@ -101,14 +113,12 @@ fun CustomPlayerControls(
                     )
                 )
             }) {
-                if (uiState !is PlaybackUiState.Playing) {
-                    InfoOverlay(
-                        contentTitle = contentTitle,
-                        contentSynopsis = contentSynopsis,
-                        season = season,
-                        episode = episode,
-                        onDismiss = onPlayPause
-                    )
+                AnimatedVisibility(
+                    visible = showExtendedInfo,
+                    enter = fadeIn(), exit = fadeOut(),
+                    modifier = Modifier.align(Alignment.TopStart)
+                ) {
+                    InfoOverlay(contentTitle, contentSynopsis, season, episode, onPlayPause)
                 }
 
                 // Top Bar
@@ -123,7 +133,7 @@ fun CustomPlayerControls(
                             imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_back),
                             contentDescription = stringResource(id = R.string.playback_back),
                             tint = NetflixTextPrimary,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                     Spacer(Modifier.width(16.dp))
@@ -141,7 +151,8 @@ fun CustomPlayerControls(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 48.dp),
+                        .padding(horizontal = 48.dp)
+                        .align(Alignment.Center),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -218,7 +229,7 @@ fun CustomPlayerControls(
                         // Action Buttons (Episodes, Audio/Subs, Next Ep)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center, // Center aligns the buttons
+                            horizontalArrangement = Arrangement.End, // Center aligns the buttons
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (season != null) {
@@ -262,7 +273,7 @@ fun CustomPlayerControls(
                             )
 
                             val safeDuration = if (duration > 0L) duration.toFloat() else 100f
-                            val progressRatio = currentPosition.toFloat().coerceIn(0f, 1f)
+                            val progressRatio = (currentPosition.toFloat() / safeDuration).coerceIn(0f, 1f)
                             val remainingTime = duration-currentPosition
 
                             LinearProgressIndicator(
@@ -287,7 +298,7 @@ fun CustomPlayerControls(
 
                             // Netflix shows remaining time, but duration is fine too
                             Text(
-                                text = formatTime(remainingTime),
+                                text = formatTime(if (remainingTime > 0) remainingTime else duration),
                                 color = Color.White.copy(alpha = 0.7f),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
@@ -311,12 +322,13 @@ private fun InfoOverlay(
 ) {
     Box(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth(0.5f)
             .background(Color.Black.copy(alpha = 0.85f))
+            .padding(start = 48.dp, top = 90.dp)
             .pointerInput(Unit) {
                 detectTapGestures(onTap = { onDismiss() })
             },
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.TopStart
     ) {
         Column(
             modifier = Modifier.padding(48.dp),

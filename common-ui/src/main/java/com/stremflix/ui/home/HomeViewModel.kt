@@ -234,15 +234,23 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun populateImages(items: List<ContentItem>): List<ContentItem> {
-        return coroutineScope {
-            items.map { item ->
-                async {
-                    // If Trakt didn't give us an image, fetch it quickly from TMDB
-                    if (item.posterUrl.isNullOrEmpty()) {
-                        (contentRepository.getDetails(item.id, item.type) as? Result.Success)?.data ?: item
-                    } else item
+        val result = mutableListOf<ContentItem>()
+        // ✅ Chunk requests to avoid TMDB 429 Rate Limit block
+        val chunks = items.chunked(3)
+
+        for (chunk in chunks) {
+            result.addAll(
+                coroutineScope {
+                    chunk.map { item ->
+                        async {
+                            if (item.posterUrl.isNullOrEmpty()) {
+                                (contentRepository.getDetails(item.id, item.type) as? Result.Success)?.data ?: item
+                            } else item
+                        }
+                    }.awaitAll()
                 }
-            }.awaitAll()
+            )
         }
+        return result
     }
 }

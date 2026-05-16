@@ -25,7 +25,7 @@ fun StremFlixApp(
 
             val navBackStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = navBackStackEntry?.destination?.route
-            val isPlayerScreen = currentRoute?.contains("playback") == true
+            val isPlayerScreen = currentRoute?.contains("PlaybackRoute") == true
 
             // Determine navigation items based on mode
             val navItems = if (isTvMode) {

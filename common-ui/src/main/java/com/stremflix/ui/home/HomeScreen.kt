@@ -1,8 +1,10 @@
 package com.stremflix.ui.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -13,12 +15,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.stremflix.ui.R
+import com.stremflix.ui.components.LoadingSkeleton
 import com.stremflix.ui.details.StreamSelectionDialog
 import com.stremflix.ui.movies.MoviesViewModel
 import com.stremflix.ui.mylist.MyListViewModel
@@ -99,13 +103,31 @@ fun HomeScreen(
 
     Scaffold(topBar = {
         TopAppBar(
-            title = { Text(text = when(filterType) {
-                "tv" -> stringResource(R.string.nav_tv_shows)
-                "movie" -> stringResource(R.string.nav_movies)
-                "list" -> stringResource(R.string.nav_my_list)
-                else -> ""
-            }, color = NetflixTextPrimary) },
-            navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.tv_banner), modifier = Modifier.fillMaxSize(), contentDescription = "StremFlix") },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.tv_banner), // Or stremflix_logo if you prefer
+                        contentDescription = "StremFlix",
+                        modifier = Modifier.height(36.dp)
+                    )
+
+                    val titleStr = when(filterType) {
+                        "tv" -> stringResource(R.string.nav_tv_shows)
+                        "movie" -> stringResource(R.string.nav_movies)
+                        "list" -> stringResource(R.string.nav_my_list)
+                        else -> ""
+                    }
+
+                    if (titleStr.isNotEmpty()) {
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            text = titleStr,
+                            color = NetflixTextPrimary,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+                }
+            },
             actions = {
                 // Settings button in top bar
                 IconButton(onClick = onNavigateToSettings) {
@@ -131,10 +153,7 @@ fun HomeScreen(
         ) {
             when (unifiedState) {
                 is HomeUiState.Loading -> {
-                    CircularProgressIndicator(
-                        color = NetflixTextPrimary,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    HomeScreenSkeleton()
                 }
                 is HomeUiState.Error -> {
                     Column(
@@ -221,6 +240,57 @@ fun HomeScreen(
 
                             item { Spacer(Modifier.height(100.dp)) }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HomeScreenSkeleton() {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().background(NetflixBlack),
+        userScrollEnabled = false
+    ) {
+        // Hero Skeleton (The big poster at the top)
+        item {
+            LoadingSkeleton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(450.dp)
+            )
+            Spacer(Modifier.height(24.dp))
+        }
+
+        // Row Skeletons (The horizontal lists)
+        items(4) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp)
+            ) {
+                // Category Title Skeleton
+                LoadingSkeleton(
+                    modifier = Modifier
+                        .padding(start = 16.dp, bottom = 8.dp)
+                        .height(20.dp)
+                        .width(150.dp)
+                )
+
+                // Horizontal Items
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    userScrollEnabled = false
+                ) {
+                    items(5) {
+                        // Poster Cover Skeleton
+                        LoadingSkeleton(
+                            modifier = Modifier
+                                .width(110.dp)
+                                .height(160.dp)
+                        )
                     }
                 }
             }
