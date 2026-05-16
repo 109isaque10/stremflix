@@ -15,6 +15,9 @@ interface WatchHistoryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(history: WatchHistoryEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(history: List<WatchHistoryEntity>)
+
     @Query("SELECT * FROM watch_history WHERE seriesId = :seriesId ORDER BY lastWatchedAt DESC LIMIT 1")
     suspend fun getLastWatchedForSeries(seriesId: String): WatchHistoryEntity?
 

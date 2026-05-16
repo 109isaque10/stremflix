@@ -185,8 +185,8 @@ class TraktRepository @Inject constructor(
                     watched.movie?.let { movie ->
                         history.add(
                             WatchHistory(
-                                episodeId = "movie_${movie.ids?.trakt}", // Movie uses dummy episodeId
-                                seriesId = movie.ids?.trakt?.toString() ?: "",
+                                episodeId = "movie_${movie.ids?.tmdb}", // Movie uses dummy episodeId
+                                seriesId = movie.ids?.tmdb?.toString() ?: "",
                                 seasonNumber = 0,
                                 episodeNumber = 0,
                                 watched = true,
@@ -205,8 +205,8 @@ class TraktRepository @Inject constructor(
                             season.episodes?.forEach { episode ->
                                 history.add(
                                     WatchHistory(  // FIX: Correct constructor params
-                                        episodeId = "${show.ids?.trakt}_${season.number}_${episode.number}",
-                                        seriesId = show.ids?.trakt?.toString() ?: "",
+                                        episodeId = "${show.ids?.tmdb}_${season.number}_${episode.number}",
+                                        seriesId = show.ids?.tmdb?.toString() ?: "",
                                         seasonNumber = season.number,
                                         episodeNumber = episode.number,
                                         watched = true,

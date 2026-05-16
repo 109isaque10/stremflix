@@ -1,5 +1,6 @@
 package com.stremflix.ui.player
 
+import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,17 +19,22 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.media3.common.C
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.TrackSelectionDialogBuilder
 import com.stremflix.ui.R
 import com.stremflix.ui.theme.NetflixRed
 import com.stremflix.ui.theme.NetflixTextPrimary
 import kotlinx.coroutines.delay
 
+@OptIn(UnstableApi::class)
 @Composable
 fun CustomPlayerControls(
     player: Player,
@@ -48,6 +54,7 @@ fun CustomPlayerControls(
     var currentPosition by remember { mutableStateOf(0L) }
     var duration by remember { mutableStateOf(0L) }
     var showExtendedInfo by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     LaunchedEffect(uiState) {
         if (uiState !is PlaybackUiState.Playing) {
@@ -157,17 +164,19 @@ fun CustomPlayerControls(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Skip Back 10s
-                    IconButton(
-                        onClick = { viewModel.skipBackward(10000); isVisible = true },
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Icon(
-                            ImageVector.vectorResource(R.drawable.ic_rotate_left),
-                            "Skip back 10s",
-                            tint = Color.White,
-                            modifier = Modifier.size(40.dp)
-                        )
-                        Text("10", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                    AnimatedVisibility(visible = !showExtendedInfo) {
+                        IconButton(
+                            onClick = { viewModel.skipBackward(10000); isVisible = true },
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                ImageVector.vectorResource(R.drawable.ic_rotate_left),
+                                "Skip back 10s",
+                                tint = Color.White,
+                                modifier = Modifier.size(40.dp)
+                            )
+                            Text("10", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                        }
                     }
 
                     if (uiState is PlaybackUiState.Buffering) {
@@ -199,17 +208,19 @@ fun CustomPlayerControls(
                     }
 
                     // Skip Forward 10s
-                    IconButton(
-                        onClick = { viewModel.skipForward(10000); isVisible = true},
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Icon(
-                            ImageVector.vectorResource(R.drawable.ic_rotate_right),
-                            "Skip forward 10s",
-                            tint = Color.White,
-                            modifier = Modifier.size(40.dp)
-                        )
-                        Text("10", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                    AnimatedVisibility(visible = !showExtendedInfo) {
+                        IconButton(
+                            onClick = { viewModel.skipForward(10000); isVisible = true },
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                ImageVector.vectorResource(R.drawable.ic_rotate_right),
+                                "Skip forward 10s",
+                                tint = Color.White,
+                                modifier = Modifier.size(40.dp)
+                            )
+                            Text("10", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                        }
                     }
                 }
 
@@ -241,10 +252,24 @@ fun CustomPlayerControls(
                                 Spacer(Modifier.width(32.dp))
                             }
 
-                            TextButton(onClick = { /* Show audio/subs */ }) {
+                            // ✅ 3. Native ExoPlayer Audio Track Selector
+                            TextButton(onClick = {
+                                TrackSelectionDialogBuilder(context, "Audio Options", player, C.TRACK_TYPE_AUDIO).build().show()
+                            }) {
                                 Icon(ImageVector.vectorResource(R.drawable.ic_subtitles), null, tint = Color.White)
                                 Spacer(Modifier.width(8.dp))
-                                Text("Audio & Subtitles", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Audio", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                            }
+
+                            Spacer(Modifier.width(16.dp))
+
+                            // ✅ 4. Native ExoPlayer Subtitle Track Selector
+                            TextButton(onClick = {
+                                TrackSelectionDialogBuilder(context, "Subtitles", player, C.TRACK_TYPE_TEXT).build().show()
+                            }) {
+                                Icon(ImageVector.vectorResource(R.drawable.ic_list), null, tint = Color.White)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Subtitles", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                             }
 
                             if (season != null) {

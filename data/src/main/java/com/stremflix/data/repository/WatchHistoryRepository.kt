@@ -61,6 +61,25 @@ class WatchHistoryRepository @Inject constructor(
         watchHistoryDao.insert(updated)
     }
 
+    suspend fun syncHistoryFromTrakt(history: List<WatchHistory>) {
+        val entities = history.map { item ->
+            WatchHistoryEntity(
+                episodeId = item.episodeId,
+                seriesId = item.seriesId,
+                seasonNumber = item.seasonNumber,
+                episodeNumber = item.episodeNumber,
+                watched = item.watched,
+                watchProgress = item.watchProgress,
+                lastWatchedAt = item.lastWatchedAt,
+                title = item.title,
+                synopsis = item.synopsis
+            )
+        }
+        if (entities.isNotEmpty()) {
+            watchHistoryDao.insertAll(entities)
+        }
+    }
+
     suspend fun markAsWatched(
         seriesId: String,
         seasonNumber: Int,

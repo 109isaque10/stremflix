@@ -41,7 +41,12 @@ class TraktOAuthManager @Inject constructor(
     suspend fun getAccessTokenForRequest(): String? {
         val current = tokenRepository.tokenFlow.value ?: return null
         if (tokenRepository.isTokenExpired()) {
-            refreshToken()
+            try {
+                refreshToken()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                return null // Gracefully fail if Trakt rejects the refresh
+            }
         }
         return tokenRepository.tokenFlow.value?.accessToken
     }

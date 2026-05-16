@@ -1,14 +1,12 @@
 package com.stremflix.data.repository
 
 import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
 import com.stremflix.data.remote.dto.trakt.AccessTokenResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -46,7 +44,7 @@ class TraktTokenRepository @Inject constructor(
     }
 
     suspend fun saveTokens(response: AccessTokenResponse, serverExpirySeconds: Int) {
-        val expiresAt = Clock.System.now().toEpochMilliseconds() + (serverExpirySeconds * 1000)
+        val expiresAt = Clock.System.now().toEpochMilliseconds() + (serverExpirySeconds * 1000L)
 
         encryptedPrefs.edit()
             .putString(KEY_ACCESS_TOKEN, response.accessToken)
