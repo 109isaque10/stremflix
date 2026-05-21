@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import coil.compose.SubcomposeAsyncImage
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -53,17 +54,29 @@ fun HeroCard(
             .fillMaxWidth()
             .height(500.dp)
             .clip(RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp))
+            .background(NetflixBlack)
     ) {
+    		val imageUrl = item.backdropUrl ?: item.posterUrl
         // Background Image (Fallback if video fails or while loading)
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(item.backdropUrl)
-                .crossfade(true)
-                .build(),
-            contentDescription = item.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
+        if (!imageUrl.isNullOrEmpty()) {
+          SubcomposeAsyncImage(
+              model = ImageRequest.Builder(LocalContext.current)
+                  .data(imageUrl)
+                  .crossfade(true)
+                  .build(),
+              contentDescription = item.title,
+              contentScale = ContentScale.Crop,
+              modifier = Modifier.fillMaxSize(),
+              loading = {
+                  Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                      CircularProgressIndicator(color = NetflixRed)
+                  }
+              },
+              error = {
+                  Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray))
+              }
+          )
+      }
 
         // Vertical Fade Overlay (Strictly between text and backdrop)
         VerticalFadeOverlay(

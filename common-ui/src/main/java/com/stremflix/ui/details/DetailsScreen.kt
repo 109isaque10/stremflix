@@ -202,6 +202,17 @@ private fun DetailsContent(
             }
         }
 
+        // Synopsis & Info
+        item {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(text = item.synopsis ?: "", color = NetflixTextSecondary, style = MaterialTheme.typography.bodyMedium)
+                if (item.genres.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(item.genres.joinToString(" • "), color = NetflixTextSecondary, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+
         // TV Show Season/Episode Selector
         if (item.type == ContentType.SERIES && seasons.isNotEmpty()) {
             item {
@@ -213,17 +224,6 @@ private fun DetailsContent(
                     onEpisodeSelected = onEpisodeSelected,
                     modifier = modifier
                 )
-            }
-        }
-
-        // Synopsis & Info
-        item {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text(text = item.synopsis ?: "", color = NetflixTextSecondary, style = MaterialTheme.typography.bodyMedium)
-                if (item.genres.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(item.genres.joinToString(" • "), color = NetflixTextSecondary, style = MaterialTheme.typography.bodySmall)
-                }
             }
         }
 

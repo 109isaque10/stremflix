@@ -153,7 +153,10 @@ fun HomeScreen(
         ) {
             when (unifiedState) {
                 is HomeUiState.Loading -> {
-                    HomeScreenSkeleton()
+                    // HomeScreenSkeleton()
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+												CircularProgressIndicator(color = NetflixRed)
+										}
                 }
                 is HomeUiState.Error -> {
                     Column(

@@ -23,10 +23,12 @@ import com.stremflix.data.model.Stream
 import com.stremflix.ui.components.QualityBadgeRow
 import com.stremflix.ui.R
 import com.stremflix.ui.theme.NetflixBlack
+import com.stremflix.ui.theme.NetflixFocusBorder
 import com.stremflix.ui.theme.NetflixRed
 import com.stremflix.ui.theme.NetflixSurfaceLight
 import com.stremflix.ui.theme.NetflixTextPrimary
 import com.stremflix.ui.theme.NetflixTextSecondary
+import com.sun.java.swing.plaf.motif.resources.motif_de
 
 @Composable
 fun StreamSelectionDialog(
@@ -94,19 +96,27 @@ private fun StreamItem(
     stream: Stream,
     onClick: () -> Unit
 ) {
+    val mod = Modifier
     Row(
-        modifier = Modifier
+        modifier = mod
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(16.dp),
+            .padding(16.dp)
+            .onFocusChanged { mod.border(1.dp, NetflixFocusBorder) },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Quality Badges (4K, HDR, etc.)
         QualityBadgeRow(
-            has4K = stream.quality?.contains("4K", ignoreCase = true) == true || stream.quality?.contains("2160", ignoreCase = true) == true,
+            has4K = stream.quality?.contains("4K", ignoreCase = true) == true || stream.quality?.contains(
+                "2160",
+                ignoreCase = true
+            ) == true,
             has51 = stream.quality?.contains("5.1", ignoreCase = true) == true,
-            hasHDR = stream.quality?.contains("HDR", ignoreCase = true) == true || stream.quality?.contains("DV", ignoreCase = true) == true,
+            hasHDR = stream.quality?.contains("HDR", ignoreCase = true) == true || stream.quality?.contains(
+                "DV",
+                ignoreCase = true
+            ) == true,
             modifier = Modifier.width(100.dp)
         )
 

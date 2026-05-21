@@ -16,7 +16,14 @@ class StreamRepository @Inject constructor(
     private val preferencesDataSource: PreferencesDataSource
 ) {
 
-    suspend fun getStreams(contentId: String, contentType: String, idType: IdType, externalIds: ExternalIds? = null, season: Int? = null, episode: Int? = null): Result<out List<Stream>> {
+    suspend fun getStreams(
+        contentId: String,
+        contentType: String,
+        idType: IdType,
+        externalIds: ExternalIds? = null,
+        season: Int? = null,
+        episode: Int? = null
+    ): Result<out List<Stream>> {
         return try {
             // Stremio expects type (movie/series) and id (imdb/tmdb)
             // We might need to resolve the correct ID format based on idType
@@ -29,7 +36,8 @@ class StreamRepository @Inject constructor(
             val response = stremioApi.getStreams(contentType, streamId)
             val streams = response.streams.mapNotNull { dto ->
                 dto.url?.let {
-                    val combinedText = "${dto.name} ${dto.title} ${dto.description} ${dto.behaviorHints?.filename}".lowercase()
+                    val combinedText =
+                        "${dto.name} ${dto.title} ${dto.description} ${dto.behaviorHints?.filename}".lowercase()
 
                     Stream(
                         description = dto.description,
@@ -37,7 +45,11 @@ class StreamRepository @Inject constructor(
                         quality = extractQuality(combinedText),
                         language = extractLanguage(combinedText), // Default
                         behaviorHints = dto.behaviorHints?.let { bh ->
-                            com.stremflix.data.model.BehaviorHints(bh.bingeGroup, bh.notWebReady, bh.proxyHeaders?.request)
+                            com.stremflix.data.model.BehaviorHints(
+                                bh.bingeGroup,
+                                bh.notWebReady,
+                                bh.proxyHeaders?.request
+                            )
                         }
                     )
                 }
@@ -116,9 +128,12 @@ class StreamRepository @Inject constructor(
     private fun extractLanguage(text: String): String {
         // Checked in order of priority. "Dual" overrides "Dublado".
         return when {
-            text.contains("dual") -> "dual audio"
-            text.contains("multi") -> "multi audio"
-            text.contains("dublado") || text.contains(" dub ") || text.contains("pt-br") || text.contains("ptbr")  || text.contains("brazillian") || text.contains("nacional") -> "Dublado"
+            text.contains("dual") -> "Dual Audio"
+            text.contains("multi") -> "Multi Audio"
+            text.contains("dublado") || text.contains(" dub ") || text.contains("pt-br") || text.contains("ptbr") || text.contains(
+                "brazillian"
+            ) || text.contains("nacional") -> "Dublado"
+
             text.contains("legendado") || text.contains(" leg ") -> "Legendado"
             text.contains(" en ") || text.contains("english") -> "English"
             text.contains(" es ") || text.contains("spanish") || text.contains("latino") -> "Spanish"

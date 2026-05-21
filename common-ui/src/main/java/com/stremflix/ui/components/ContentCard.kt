@@ -22,6 +22,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import coil.compose.SubcomposeAsyncImage
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
@@ -66,35 +67,33 @@ fun ContentCard(
                 .clip(RoundedCornerShape(6.dp))
         ) {
             if (!imageUrl.isNullOrEmpty()) {
-                val painter = rememberAsyncImagePainter(
+                SubcomposeAsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(imageUrl)
                         .crossfade(true)
-                        .build()
-                )
-                val isLoading = painter.state is AsyncImagePainter.State.Loading
-                Box(
-                    modifier = Modifier
-                        .aspectRatio(aspectRatio)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NetflixSurfaceLight)
-                        .fillMaxSize()
-                ) {
-                    Image(
-                        painter = painter,
-                        contentDescription = contentDescription,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-
-                    if (isLoading && !imageUrl.isNullOrBlank()) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(24.dp).align(Alignment.Center)
-                        )
+                        .build(),
+                    contentDescription = contentDescription,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    loading = {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    },
+                    error = {
+                        // If the URL fails to load for ANY network reason, gracefully show the placeholder
+                        Box(
+                            modifier = Modifier.fillMaxSize().background(Color(0xFF333333)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = stringResource(R.string.no_image), color = Color.Gray)
+                        }
                     }
-                }
+                )
             } else {
                 // Placeholder when no image
                 Box(

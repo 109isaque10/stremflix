@@ -10,6 +10,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.appcompat.view.ContextThemeWrapper
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -55,6 +56,7 @@ fun CustomPlayerControls(
     var duration by remember { mutableStateOf(0L) }
     var showExtendedInfo by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val themedContext = remember(context) { ContextThemeWrapper(context, 		androidx.appcompat.R.style.Theme_AppCompat_DayNight_Dialog_Alert) }
 
     LaunchedEffect(uiState) {
         if (uiState !is PlaybackUiState.Playing) {
@@ -254,7 +256,7 @@ fun CustomPlayerControls(
 
                             // ✅ 3. Native ExoPlayer Audio Track Selector
                             TextButton(onClick = {
-                                TrackSelectionDialogBuilder(context, "Audio Options", player, C.TRACK_TYPE_AUDIO).build().show()
+                                TrackSelectionDialogBuilder(themedContext, "Audio", player, C.TRACK_TYPE_AUDIO).build().show()
                             }) {
                                 Icon(ImageVector.vectorResource(R.drawable.ic_subtitles), null, tint = Color.White)
                                 Spacer(Modifier.width(8.dp))
@@ -265,7 +267,7 @@ fun CustomPlayerControls(
 
                             // ✅ 4. Native ExoPlayer Subtitle Track Selector
                             TextButton(onClick = {
-                                TrackSelectionDialogBuilder(context, "Subtitles", player, C.TRACK_TYPE_TEXT).build().show()
+                                TrackSelectionDialogBuilder(themedContext, "Subtitles", player, C.TRACK_TYPE_TEXT).build().show()
                             }) {
                                 Icon(ImageVector.vectorResource(R.drawable.ic_list), null, tint = Color.White)
                                 Spacer(Modifier.width(8.dp))

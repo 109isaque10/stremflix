@@ -1,5 +1,3 @@
-// common-ui/src/main/java/com/stremflix/ui/home/HomeViewModel.kt
-
 package com.stremflix.ui.home
 
 import android.content.Context
@@ -116,6 +114,8 @@ class HomeViewModel @Inject constructor(
                             watchHistoryRepository.syncHistoryFromTrakt(historyResult.data)
                         }
                     } catch (e: Exception) {
+                        / common - ui / src / main / java / com / stremflix / ui / home / HomeViewModel.kt
+
                         e.printStackTrace() // Ignore network failures on background sync
                     }
                 }
@@ -123,19 +123,40 @@ class HomeViewModel @Inject constructor(
 
             try {
                 val continueWatching = loadContinueWatching()
-                if (continueWatching.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_continue_watching), continueWatching))
+                if (continueWatching.isNotEmpty()) rows.add(
+                    ContentRow(
+                        context.getString(R.string.row_continue_watching),
+                        continueWatching
+                    )
+                )
 
                 val becauseYouWatched = loadBecauseYouWatched()
-                if (becauseYouWatched.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_because_you_watched), becauseYouWatched))
+                if (becauseYouWatched.isNotEmpty()) {
+                    val history = watchHistoryRepository.getAllWatchHistory().firstOrNull() ?: emptyList()
+                    val lastWatchedTitle = history.firstOrNull { it.isCompleted }?.title ?: "Recent Content"
+
+                    val rowTitle = context.getString(R.string.row_because_you_watched, lastWatchedTitle)
+                    rows.add(ContentRow(rowTitle, becauseYouWatched))
+                }
 
                 val traktRecommendations = if (isTraktEnabled) loadTraktRecommendations() else emptyList()
-                if (traktRecommendations.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_recommended_for_you), traktRecommendations))
+                if (traktRecommendations.isNotEmpty()) rows.add(
+                    ContentRow(
+                        context.getString(R.string.row_recommended_for_you),
+                        traktRecommendations
+                    )
+                )
 
                 val trending = if (isTraktEnabled) loadTraktTrending() else loadTmdbTrendingToday()
                 if (trending.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_trending_now), trending))
 
                 val mostWatched = if (isTraktEnabled) loadTraktMostWatchedWeekly() else loadTmdbTrendingWeek()
-                if (mostWatched.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_most_watched_week), mostWatched))
+                if (mostWatched.isNotEmpty()) rows.add(
+                    ContentRow(
+                        context.getString(R.string.row_most_watched_week),
+                        mostWatched
+                    )
+                )
 
                 _uiState.value = HomeUiState.Success(rows)
 
@@ -164,7 +185,10 @@ class HomeViewModel @Inject constructor(
                 }
 
                 // If no next episode in current season, try season + 1
-                nextEp ?: (contentRepository.getSeasonEpisodes(entry.seriesId, entry.seasonNumber + 1) as? Result.Success)
+                nextEp ?: (contentRepository.getSeasonEpisodes(
+                    entry.seriesId,
+                    entry.seasonNumber + 1
+                ) as? Result.Success)
                     ?.data?.firstOrNull()
             } else {
                 null
