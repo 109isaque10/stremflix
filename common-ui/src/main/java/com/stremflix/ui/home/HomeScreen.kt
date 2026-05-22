@@ -18,16 +18,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.stremflix.ui.R
+import com.stremflix.ui.components.GenreCard
 import com.stremflix.ui.components.LoadingSkeleton
 import com.stremflix.ui.details.StreamSelectionDialog
 import com.stremflix.ui.movies.MoviesViewModel
 import com.stremflix.ui.mylist.MyListViewModel
 import com.stremflix.ui.series.SeriesViewModel
 import com.stremflix.ui.theme.NetflixBlack
+import com.stremflix.ui.theme.NetflixRed
 import com.stremflix.ui.theme.NetflixTextPrimary
 import com.stremflix.ui.theme.NetflixTextSecondary
 
@@ -35,6 +39,7 @@ import com.stremflix.ui.theme.NetflixTextSecondary
 fun HomeScreen(
     onNavigateToDetails: (String, String?, String, String) -> Unit,
     onNavigateToPlayback: (String, String, String?, String, String) -> Unit,
+    onNavigateToCategory: (String?) -> Unit,
     isTvMode: Boolean = false,
     filterType: String = "home",
     homeViewModel: HomeViewModel = hiltViewModel(),
@@ -102,47 +107,49 @@ fun HomeScreen(
     }
 
     Scaffold(topBar = {
-        TopAppBar(
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(id = R.drawable.tv_banner), // Or stremflix_logo if you prefer
-                        contentDescription = "StremFlix",
-                        modifier = Modifier.height(36.dp)
-                    )
+        if (!isTvMode){
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.tv_banner), // Or stremflix_logo if you prefer
+                            contentDescription = "StremFlix",
+                            modifier = Modifier.height(36.dp)
+                        )
 
-                    val titleStr = when(filterType) {
-                        "tv" -> stringResource(R.string.nav_tv_shows)
-                        "movie" -> stringResource(R.string.nav_movies)
-                        "list" -> stringResource(R.string.nav_my_list)
-                        else -> ""
+                        val titleStr = when(filterType) {
+                            "tv" -> stringResource(R.string.nav_tv_shows)
+                            "movie" -> stringResource(R.string.nav_movies)
+                            "list" -> stringResource(R.string.nav_my_list)
+                            else -> ""
+                        }
+
+                        if (titleStr.isNotEmpty()) {
+                            Spacer(Modifier.width(16.dp))
+                            Text(
+                                text = titleStr,
+                                color = NetflixTextPrimary,
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                        }
                     }
-
-                    if (titleStr.isNotEmpty()) {
-                        Spacer(Modifier.width(16.dp))
-                        Text(
-                            text = titleStr,
-                            color = NetflixTextPrimary,
-                            style = MaterialTheme.typography.titleLarge
+                },
+                actions = {
+                    // Settings button in top bar
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(R.drawable.ic_settings),
+                            contentDescription = "Settings",
+                            tint = NetflixTextPrimary
                         )
                     }
-                }
-            },
-            actions = {
-                // Settings button in top bar
-                IconButton(onClick = onNavigateToSettings) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(R.drawable.ic_settings),
-                        contentDescription = "Settings",
-                        tint = NetflixTextPrimary
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = NetflixBlack,
-                titleContentColor = NetflixTextPrimary
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = NetflixBlack,
+                    titleContentColor = NetflixTextPrimary
+                )
             )
-        )
+        }
     }){
         padding ->
         Box(
@@ -207,11 +214,11 @@ fun HomeScreen(
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                             // Hero section
                             val firstRow = rows.firstOrNull()
-                            if (firstRow != null && firstRow.items.isNotEmpty() && filterType == null) {
+                            if (firstRow != null && firstRow.items.isNotEmpty() && filterType == "home") {
                                 item {
                                     HeroCard(
                                         item = firstRow.items.first(),
-                                        onPlayClick = { homeViewModel.onPlayClicked(firstRow.items.first()) },
+                                        onPlayClick = { homeViewModel.onPlayClicked(null) },
                                         onMoreInfoClick = {
                                             onNavigateToDetails(
                                                 firstRow.items.first().title,
@@ -239,6 +246,38 @@ fun HomeScreen(
                                         onNavigateToDetails(item.title, item.synopsis, item.id, item.type.name.lowercase())
                                     }
                                 )
+                            }
+
+                            if(!isTvMode && filterType == "home"){
+                                item {
+                                    val genres = com.stremflix.data.util.TmdbGenres.MOVIE.values.sorted()
+
+                                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)) {
+                                        Text(
+                                            text = "Browse by Genre",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 18.sp,
+                                            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+                                        )
+
+                                        LazyRow(
+                                            contentPadding = PaddingValues(horizontal = 16.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            items(genres.size) { index ->
+                                                val genre = genres[index]
+                                                GenreCard(
+                                                    genreName = genre,
+                                                    onClick = {
+                                                        // You would pass the genre ID or name to your navigation here
+                                                        onNavigateToCategory(genre)
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
 
                             item { Spacer(Modifier.height(100.dp)) }

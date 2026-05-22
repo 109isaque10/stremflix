@@ -4,15 +4,16 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.stremflix.core.domain.model.ContentType
-import com.stremflix.core.domain.model.Result
 import com.stremflix.core.util.AppDispatchers
 import com.stremflix.data.local.PreferencesDataSource
+import com.stremflix.data.model.ContentItem
 import com.stremflix.data.repository.ContentRepository
 import com.stremflix.data.repository.TraktRepository
 import com.stremflix.ui.R
 import com.stremflix.ui.home.ContentRow
 import com.stremflix.ui.home.SeriesUiState
 import com.stremflix.ui.util.checkTraktEnabled
+import com.stremflix.ui.util.populateImages
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,34 +42,31 @@ class SeriesViewModel @Inject constructor(
         viewModelScope.launch(dispatchers.io) {
             _uiState.value = SeriesUiState.Loading
 
-            try {
-                val rows = mutableListOf<ContentRow>()
+            val isTraktEnabled = checkTraktEnabled(preferencesDataSource)
 
-                val isTraktEnabled = checkTraktEnabled(preferencesDataSource)
+            val rowDefinitions = listOf(
+                context.getString(R.string.row_trending_series) to suspend { contentRepository.getTrending(ContentType.SERIES).dataOrNull() },
+                context.getString(R.string.row_popular_series) to suspend { contentRepository.getPopular(ContentType.SERIES).dataOrNull() },
+                context.getString(R.string.row_top_rated_tv) to suspend { contentRepository.getTopRated(ContentType.SERIES).dataOrNull() },
+                context.getString(R.string.row_currently_airing) to suspend { contentRepository.getCurrentlyAiring().dataOrNull() },
+                context.getString(R.string.row_upcoming_series) to suspend { val anticipated = if (isTraktEnabled) traktRepository.getUpcomingFromCalendar().dataOrNull() else contentRepository.getUpcomingSeries().dataOrNull(); populateImages(anticipated ?: emptyList(), contentRepository = contentRepository) },
+                context.getString(R.string.row_most_anticipated_shows) to suspend { val anticipated = if (isTraktEnabled) traktRepository.getMostAnticipatedShows().dataOrNull() else contentRepository.getAnticipatedSeries().dataOrNull(); populateImages(anticipated ?: emptyList(), contentRepository = contentRepository) }
+            )
 
-                val trending = contentRepository.getTrending(ContentType.SERIES)
-                if (trending is Result.Success && trending.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_trending_series), trending.data))
+            val results = contentRepository.loadInParallel<Pair<String, suspend () -> List<ContentItem>>, Pair<String, List<ContentItem>>>(
+                rowDefinitions as List<Pair<String, suspend () -> List<ContentItem>>>,
+                concurrencyLimit = 8
+            ) { (title, loader) ->
+                val items = try { loader() } catch (e: Exception) { emptyList<ContentItem>() } // Explicitly type emptyList
+                title to items
+            }
 
-                val popular = contentRepository.getPopular(ContentType.SERIES)
-                if (popular is Result.Success && popular.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_popular_series), popular.data))
+            val rows: List<ContentRow> = results.filter { it.second.isNotEmpty() }.map { ContentRow(it.first, it.second) }
 
-                val topRated = contentRepository.getTopRated(ContentType.SERIES)
-                if (topRated is Result.Success && topRated.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_top_rated_tv), topRated.data))
-
-                val airing = contentRepository.getCurrentlyAiring()
-                if (airing is Result.Success && airing.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_currently_airing), airing.data))
-
-                val upcoming = if (isTraktEnabled) traktRepository.getUpcomingFromCalendar() else contentRepository.getUpcomingSeries()
-                if (upcoming is Result.Success && upcoming.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_upcoming_series), upcoming.data))
-
-                val anticipated = if (isTraktEnabled) traktRepository.getMostAnticipatedShows() else contentRepository.getAnticipatedSeries()
-                if (anticipated is Result.Success && anticipated.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_most_anticipated_shows), anticipated.data))
-
-
+            if (rows.isEmpty()) {
+                _uiState.value = SeriesUiState.Error("No content available.")
+            } else {
                 _uiState.value = SeriesUiState.Success(rows)
-
-            } catch (e: Exception) {
-                _uiState.value = SeriesUiState.Error(e.message ?: "Failed to load series")
             }
         }
     }

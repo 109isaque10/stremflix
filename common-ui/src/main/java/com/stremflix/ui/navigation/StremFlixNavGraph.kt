@@ -10,14 +10,16 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import androidx.navigation.toRoute
 import com.stremflix.core.domain.model.ContentType
-import com.stremflix.ui.auth.TraktAuthScreen
-import com.stremflix.ui.home.HomeScreen
-import com.stremflix.ui.search.SearchScreen
-import com.stremflix.ui.player.PlaybackScreen
-import com.stremflix.ui.details.DetailsScreen
-import com.stremflix.ui.settings.SettingsScreen
 import com.stremflix.ui.auth.OAuthCallbackScreen
+import com.stremflix.ui.auth.TraktAuthScreen
+import com.stremflix.ui.browse.CategoryBrowseScreen
+import com.stremflix.ui.browse.CategoryBrowseViewModel
+import com.stremflix.ui.details.DetailsScreen
+import com.stremflix.ui.home.HomeScreen
+import com.stremflix.ui.player.PlaybackScreen
 import com.stremflix.ui.player.PlayerManager
+import com.stremflix.ui.search.SearchScreen
+import com.stremflix.ui.settings.SettingsScreen
 import com.stremflix.ui.splash.SplashScreen
 import com.stremflix.ui.splash.SplashViewModel
 
@@ -58,7 +60,9 @@ fun StremFlixNavGraph(
                         AppRoute.PlaybackRoute(streamUrl, contentTitle, contentSynopsis, contentId, type)
                     )
                 },
-                isTvMode = isTvMode
+                onNavigateToCategory = {navController.navigate(AppRoute.CategoryBrowse(null))},
+                isTvMode = isTvMode,
+                filterType = "home"
             )
         }
 
@@ -92,6 +96,7 @@ fun StremFlixNavGraph(
                         )
                     )
                 },
+                onNavigateToCategory = {navController.navigate(AppRoute.CategoryBrowse(null))},
                 isTvMode = isTvMode,
                 filterType = "tv",
             )
@@ -117,6 +122,7 @@ fun StremFlixNavGraph(
                         )
                     )
                 },
+                onNavigateToCategory = {navController.navigate(AppRoute.CategoryBrowse(null))},
                 isTvMode = isTvMode,
                 filterType = "movie",
             )
@@ -142,6 +148,7 @@ fun StremFlixNavGraph(
                         )
                     )
                 },
+                onNavigateToCategory = {navController.navigate(AppRoute.CategoryBrowse(null))},
                 isTvMode = isTvMode,
                 filterType = "list",
             )
@@ -189,6 +196,7 @@ fun StremFlixNavGraph(
                 contentType = route.type,
                 season = route.season,
                 episode = route.episode,
+                isTvMode = isTvMode,
                 onBack = { navController.popBackStack() }
             )
         }
@@ -203,6 +211,16 @@ fun StremFlixNavGraph(
                     navController.navigate(AppRoute.Home) {
                         popUpTo(AppRoute.Splash) { inclusive = true }
                     }
+                }
+            )
+        }
+
+        composable<AppRoute.CategoryBrowse> {
+            val viewModel: CategoryBrowseViewModel = hiltViewModel()
+            CategoryBrowseScreen(
+                viewModel = viewModel,
+                onNavigateToDetails = { title, synopsis, id, type ->
+                    navController.navigate(AppRoute.Details(title,synopsis, id, type))
                 }
             )
         }

@@ -8,6 +8,7 @@ import com.stremflix.core.domain.model.Result
 import com.stremflix.core.util.AppDispatchers
 import com.stremflix.data.local.PreferencesDataSource
 import com.stremflix.data.model.ContentItem
+import com.stremflix.data.model.Episode
 import com.stremflix.data.repository.*
 import com.stremflix.ui.R
 import com.stremflix.ui.util.checkTraktEnabled
@@ -15,10 +16,7 @@ import com.stremflix.ui.util.handlePlayLogic
 import com.stremflix.ui.util.populateImages
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -76,11 +74,12 @@ class HomeViewModel @Inject constructor(
         loadHomeContent()
     }
 
-    fun onPlayClicked(item: ContentItem) {
-        currentSelectedItem = item
+    fun onPlayClicked(episode: Episode?) {
         viewModelScope.launch(dispatchers.io) {
+            val item = currentSelectedItem ?: return@launch
             handlePlayLogic(
                 item = item,
+                specificEpisode = episode,
                 contentRepository = contentRepository,
                 streamRepository = streamRepository,
                 watchHistoryRepository = watchHistoryRepository,
@@ -103,7 +102,6 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch(dispatchers.io) {
             _uiState.value = HomeUiState.Loading
 
-            val rows = mutableListOf<ContentRow>()
             val isTraktEnabled = checkTraktEnabled(preferencesDataSource)
 
             if (isTraktEnabled) {
@@ -114,54 +112,32 @@ class HomeViewModel @Inject constructor(
                             watchHistoryRepository.syncHistoryFromTrakt(historyResult.data)
                         }
                     } catch (e: Exception) {
-                        / common - ui / src / main / java / com / stremflix / ui / home / HomeViewModel.kt
-
                         e.printStackTrace() // Ignore network failures on background sync
                     }
                 }
             }
+            val history = watchHistoryRepository.getAllWatchHistory().firstOrNull() ?: emptyList()
+            val lastWatchedTitle = history.firstOrNull { it.isCompleted }?.title ?: "Recent Content"
 
-            try {
-                val continueWatching = loadContinueWatching()
-                if (continueWatching.isNotEmpty()) rows.add(
-                    ContentRow(
-                        context.getString(R.string.row_continue_watching),
-                        continueWatching
-                    )
-                )
+            val rowDefinitions = listOf(
+                context.getString(R.string.row_continue_watching) to suspend { loadContinueWatching() },
+                context.getString(R.string.row_because_you_watched, lastWatchedTitle) to suspend { loadBecauseYouWatched() },
+                context.getString(R.string.row_recommended_for_you) to suspend { if (isTraktEnabled) loadTraktRecommendations() else emptyList() },
+                context.getString(R.string.row_trending_now) to suspend { if (isTraktEnabled) loadTraktTrending() else loadTmdbTrendingToday() },
+                context.getString(R.string.row_most_watched_week) to suspend { if (isTraktEnabled) loadTraktMostWatchedWeekly() else loadTmdbTrendingWeek() }
+            )
 
-                val becauseYouWatched = loadBecauseYouWatched()
-                if (becauseYouWatched.isNotEmpty()) {
-                    val history = watchHistoryRepository.getAllWatchHistory().firstOrNull() ?: emptyList()
-                    val lastWatchedTitle = history.firstOrNull { it.isCompleted }?.title ?: "Recent Content"
+            val results = contentRepository.loadInParallel(rowDefinitions, concurrencyLimit = 8) { (title, loader) ->
+                val items = try { loader() } catch (e: Exception) { emptyList() }
+                title to items
+            }
 
-                    val rowTitle = context.getString(R.string.row_because_you_watched, lastWatchedTitle)
-                    rows.add(ContentRow(rowTitle, becauseYouWatched))
-                }
+            val rows = results.filter { it.second.isNotEmpty() }.map { ContentRow(it.first, it.second) }
 
-                val traktRecommendations = if (isTraktEnabled) loadTraktRecommendations() else emptyList()
-                if (traktRecommendations.isNotEmpty()) rows.add(
-                    ContentRow(
-                        context.getString(R.string.row_recommended_for_you),
-                        traktRecommendations
-                    )
-                )
-
-                val trending = if (isTraktEnabled) loadTraktTrending() else loadTmdbTrendingToday()
-                if (trending.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_trending_now), trending))
-
-                val mostWatched = if (isTraktEnabled) loadTraktMostWatchedWeekly() else loadTmdbTrendingWeek()
-                if (mostWatched.isNotEmpty()) rows.add(
-                    ContentRow(
-                        context.getString(R.string.row_most_watched_week),
-                        mostWatched
-                    )
-                )
-
+            if (rows.isEmpty()) {
+                _uiState.value = HomeUiState.Error("No content available.")
+            } else {
                 _uiState.value = HomeUiState.Success(rows)
-
-            } catch (e: Exception) {
-                _uiState.value = HomeUiState.Error(e.message ?: "Failed to load content")
             }
         }
     }

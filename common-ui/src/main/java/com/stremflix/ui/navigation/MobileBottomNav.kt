@@ -3,20 +3,16 @@ package com.stremflix.ui.navigation
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.stremflix.ui.theme.NetflixBlack
-import com.stremflix.ui.theme.NetflixRed
 
-data class BottomNavItem(
+data class NavItem(
     val route: Any,
     val labelResId: Int,
     val iconResId: Int
@@ -25,7 +21,7 @@ data class BottomNavItem(
 @Composable
 fun MobileBottomNavigation(
     navController: NavHostController,
-    items: List<BottomNavItem>,
+    items: List<NavItem>,
     modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()

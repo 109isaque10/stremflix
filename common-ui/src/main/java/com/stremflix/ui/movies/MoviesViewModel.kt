@@ -4,15 +4,16 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.stremflix.core.domain.model.ContentType
-import com.stremflix.core.domain.model.Result
 import com.stremflix.core.util.AppDispatchers
 import com.stremflix.data.local.PreferencesDataSource
+import com.stremflix.data.model.ContentItem
 import com.stremflix.data.repository.ContentRepository
 import com.stremflix.data.repository.TraktRepository
 import com.stremflix.ui.R
 import com.stremflix.ui.home.ContentRow
 import com.stremflix.ui.home.MoviesUiState
 import com.stremflix.ui.util.checkTraktEnabled
+import com.stremflix.ui.util.populateImages
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,33 +42,33 @@ class MoviesViewModel @Inject constructor(
         viewModelScope.launch(dispatchers.io) {
             _uiState.value = MoviesUiState.Loading
 
-            try {
-                val rows = mutableListOf<ContentRow>()
+            val isTraktEnabled = checkTraktEnabled(preferencesDataSource)
 
-                val isTraktEnabled = checkTraktEnabled(preferencesDataSource)
+            val rowDefinitions = listOf(
+                context.getString(R.string.row_trending_movies) to suspend { contentRepository.getTrending(ContentType.MOVIE).dataOrNull() },
+                context.getString(R.string.row_popular_movies) to suspend { contentRepository.getPopular(ContentType.MOVIE).dataOrNull() },
+                context.getString(R.string.row_top_rated_movies) to suspend { contentRepository.getTopRated(ContentType.MOVIE).dataOrNull() },
+                context.getString(R.string.row_now_playing) to suspend { contentRepository.getNowPlaying().dataOrNull() },
+                context.getString(R.string.row_most_anticipated_movies) to suspend { val anticipated = if (isTraktEnabled) traktRepository.getMostAnticipatedMovies().dataOrNull() else contentRepository.getUpcomingMovies().dataOrNull(); populateImages(anticipated ?: emptyList(), contentRepository = contentRepository) }
+            )
 
-                val trending = contentRepository.getTrending(ContentType.MOVIE)
-                if (trending is Result.Success && trending.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_trending_movies), trending.data))
+//            val byGenre = contentRepository.getMoviesByGenre()
+//            if (byGenre is Result.Success && byGenre.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_browse_by_genre), byGenre.data))
 
-                val popular = contentRepository.getPopular(ContentType.MOVIE)
-                if (popular is Result.Success && popular.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_popular_movies), popular.data))
+            val results = contentRepository.loadInParallel<Pair<String, suspend () -> List<ContentItem>>, Pair<String, List<ContentItem>>>(
+                rowDefinitions as List<Pair<String, suspend () -> List<ContentItem>>>,
+                concurrencyLimit = 8
+            ) { (title, loader) ->
+                val items = try { loader() } catch (e: Exception) { emptyList<ContentItem>() } // Explicitly type emptyList
+                title to items
+            }
 
-                val topRated = contentRepository.getTopRated(ContentType.MOVIE)
-                if (topRated is Result.Success && topRated.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_top_rated_movies), topRated.data))
+            val rows: List<ContentRow> = results.filter { it.second.isNotEmpty() }.map { ContentRow(it.first, it.second) }
 
-                val nowPlaying = contentRepository.getNowPlaying()
-                if (nowPlaying is Result.Success && nowPlaying.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_now_playing), nowPlaying.data))
-
-                val anticipated = if (isTraktEnabled) traktRepository.getMostAnticipatedMovies() else contentRepository.getUpcomingMovies()
-                if (anticipated is Result.Success && anticipated.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_most_anticipated_movies), anticipated.data))
-
-                val byGenre = contentRepository.getMoviesByGenre()
-                if (byGenre is Result.Success && byGenre.data.isNotEmpty()) rows.add(ContentRow(context.getString(R.string.row_browse_by_genre), byGenre.data))
-
+            if (rows.isEmpty()) {
+                _uiState.value = MoviesUiState.Error("No content available.")
+            } else {
                 _uiState.value = MoviesUiState.Success(rows)
-
-            } catch (e: Exception) {
-                _uiState.value = MoviesUiState.Error(e.message ?: "Failed to load movies")
             }
         }
     }

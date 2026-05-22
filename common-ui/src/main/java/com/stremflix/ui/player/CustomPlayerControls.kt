@@ -1,6 +1,7 @@
 package com.stremflix.ui.player
 
 import androidx.annotation.OptIn
+import androidx.appcompat.view.ContextThemeWrapper
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -10,7 +11,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.appcompat.view.ContextThemeWrapper
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,6 +43,7 @@ fun CustomPlayerControls(
     contentTitle: String,
     contentSynopsis: String?,
     viewModel: PlaybackViewModel,
+    isTvMode: Boolean,
     season: Int? = null,
     episode: Int? = null,
     progress: Float,
@@ -109,15 +110,15 @@ fun CustomPlayerControls(
                 drawContent()
                 drawRect(
                     brush = Brush.verticalGradient(
-                        colors = listOf(Color.Black.copy(alpha = 0.8f), Color.Transparent),
+                        colors = listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent),
                         startY = 0f,
-                        endY = 300f
+                        endY = 200f
                     )
                 )
                 drawRect(
                     brush = Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.9f)),
-                        startY = size.height - 350f,
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)),
+                        startY = size.height - 250f,
                         endY = size.height
                     )
                 )
@@ -162,22 +163,25 @@ fun CustomPlayerControls(
                         .fillMaxWidth()
                         .padding(horizontal = 48.dp)
                         .align(Alignment.Center),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Skip Back 10s
-                    AnimatedVisibility(visible = !showExtendedInfo) {
-                        IconButton(
-                            onClick = { viewModel.skipBackward(10000); isVisible = true },
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            Icon(
-                                ImageVector.vectorResource(R.drawable.ic_rotate_left),
-                                "Skip back 10s",
-                                tint = Color.White,
-                                modifier = Modifier.size(40.dp)
-                            )
-                            Text("10", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                    if(!isTvMode){
+                        AnimatedVisibility(visible = !showExtendedInfo) {
+                            IconButton(
+                                onClick = { viewModel.skipBackward(10000); isVisible = true },
+                                modifier = Modifier.size(56.dp)
+                            ) {
+                                Icon(
+                                    ImageVector.vectorResource(R.drawable.ic_rotate_left),
+                                    "Skip back 10s",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                                Text("10", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                Spacer(modifier = Modifier.width(32.dp))
+                            }
                         }
                     }
 
@@ -210,18 +214,20 @@ fun CustomPlayerControls(
                     }
 
                     // Skip Forward 10s
-                    AnimatedVisibility(visible = !showExtendedInfo) {
-                        IconButton(
-                            onClick = { viewModel.skipForward(10000); isVisible = true },
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            Icon(
-                                ImageVector.vectorResource(R.drawable.ic_rotate_right),
-                                "Skip forward 10s",
-                                tint = Color.White,
-                                modifier = Modifier.size(40.dp)
-                            )
-                            Text("10", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                    if(!isTvMode){
+                        AnimatedVisibility(visible = !showExtendedInfo) {
+                            IconButton(
+                                onClick = { viewModel.skipForward(10000); isVisible = true },
+                                modifier = Modifier.size(56.dp)
+                            ) {
+                                Icon(
+                                    ImageVector.vectorResource(R.drawable.ic_rotate_right),
+                                    "Skip forward 10s",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                                Text("10", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                            }
                         }
                     }
                 }

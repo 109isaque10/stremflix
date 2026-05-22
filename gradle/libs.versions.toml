@@ -24,6 +24,7 @@ junit = "4.13.2"
 junit-jupiter = "5.11.4"
 mockk = "1.13.16"
 turbine = "1.2.0"
+appcompat = "1.7.1"
 
 [libraries]
 # AndroidX Core
@@ -98,6 +99,7 @@ mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "moc
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

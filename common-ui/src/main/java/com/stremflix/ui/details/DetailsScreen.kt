@@ -1,12 +1,13 @@
 package com.stremflix.ui.details
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -16,7 +17,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
@@ -25,11 +25,10 @@ import com.stremflix.core.domain.model.ContentType
 import com.stremflix.data.model.ContentItem
 import com.stremflix.data.model.Episode
 import com.stremflix.data.model.Stream
+import com.stremflix.ui.R
 import com.stremflix.ui.components.MatchBadge
 import com.stremflix.ui.components.VerticalFadeOverlay
-import com.stremflix.ui.R
 import com.stremflix.ui.theme.NetflixBlack
-import com.stremflix.ui.theme.NetflixRed
 import com.stremflix.ui.theme.NetflixTextPrimary
 import com.stremflix.ui.theme.NetflixTextSecondary
 
@@ -171,6 +170,13 @@ private fun DetailsContent(
                                 .background(Color(0xFF333333), RoundedCornerShape(2.dp))
                                 .padding(horizontal = 4.dp, vertical = 2.dp)
                         )
+                        if (item.runtime != null && item.runtime!! > 0) {
+                            Text(
+                                text = "${item.runtime}m",
+                                color = NetflixTextSecondary,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

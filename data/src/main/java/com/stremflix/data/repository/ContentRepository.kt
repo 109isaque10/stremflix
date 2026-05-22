@@ -12,14 +12,77 @@ import com.stremflix.data.mapper.toEpisode
 import com.stremflix.data.model.ContentItem
 import com.stremflix.data.model.Episode
 import com.stremflix.data.remote.TmdbApi
+import io.ktor.client.plugins.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class ContentRepository @Inject constructor(
     private val tmdbApi: TmdbApi,
     private val contentDao: ContentDao
 ) {
+
+    suspend fun <T, R> loadInParallel(
+        items: List<T>,
+        concurrencyLimit: Int = 15,
+        action: suspend (T) -> R
+    ): List<R> = coroutineScope {
+        val semaphore = Semaphore(concurrencyLimit)
+        items.mapIndexed { index, item ->
+            async {
+                semaphore.withPermit {
+                    // Stagger the initial burst so they don't hit the API at the exact same millisecond
+                    if (index < concurrencyLimit) {
+                        delay(index * 50L)
+                    }
+                    action(item)
+                }
+            }
+        }.awaitAll()
+    }
+
+    suspend fun populateContentImages(items: List<ContentItem>): List<ContentItem> {
+        if (items.isEmpty()) return emptyList()
+        return loadInParallel(items, concurrencyLimit = 4) { item ->
+            if (item.posterUrl.isNullOrEmpty()) {
+                (getDetails(item.id, item.type) as? Result.Success)?.data ?: item
+            } else {
+                item
+            }
+        }
+    }
+
+    suspend fun <T> retryWithBackoff(
+        maxRetries: Int,
+        initialDelay: Long = 1000L, // 1 second
+        block: suspend () -> T
+    ): T {
+        var currentDelay = initialDelay
+        var attempt = 0
+
+        while (true) {
+            try {
+                return block()
+            } catch (e: ResponseException) {
+                // Check for HTTP 429
+                if (e.response.status.value == 429 && attempt < maxRetries) {
+                    attempt++
+                    // Exponential backoff
+                    delay(currentDelay.milliseconds)
+                    currentDelay = (currentDelay * 2).coerceAtMost(10000L) // cap at 10s
+                } else {
+                    throw e // Propagate the exception if it's not a 429 or max retries reached
+                }
+            }
+        }
+    }
 
     suspend fun getTrending(contentType: ContentType, timeWindow: String = "week"): Result<List<ContentItem>> {
         return cached(

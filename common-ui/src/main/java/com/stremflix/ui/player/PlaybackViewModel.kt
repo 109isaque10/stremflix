@@ -18,6 +18,7 @@ import com.stremflix.data.manager.TraktOAuthManager
 import com.stremflix.data.model.ContentItem
 import com.stremflix.data.model.Episode
 import com.stremflix.data.model.Stream
+import com.stremflix.data.remote.ImdbDevApi
 import com.stremflix.data.remote.dto.trakt.EpisodeInfo
 import com.stremflix.data.remote.dto.trakt.MovieInfo
 import com.stremflix.data.remote.dto.trakt.TraktIds
@@ -43,6 +44,14 @@ data class UpNextInfo(
     val seasonEpisode: String?
 )
 
+private val ADVISORY_MAPPING = mapOf(
+    "VIOLENCE" to mapOf("mild" to "Violence", "moderate" to "Intense Violence", "severe" to "Graphic Violence"),
+    "SEXUAL_CONTENT" to mapOf("mild" to "Sexual Situations", "moderate" to "Sexual Content", "severe" to "Explicit Sexual Content"),
+    "PROFANITY" to mapOf("mild" to "Mild Language", "moderate" to "Strong Language", "severe" to "Inadequate Language"),
+    "ALCOHOL_DRUGS" to mapOf("mild" to "Substance References", "moderate" to "Substance Use", "severe" to "Heavy Substance Use"),
+    "FRIGHTENING_INTENSE_SCENES" to mapOf("mild" to "Tense Scenes", "moderate" to "Frightening Scenes", "severe" to "Extreme Terror")
+)
+
 sealed class PlaybackUiState {
     object Idle : PlaybackUiState()
     object Buffering : PlaybackUiState()
@@ -58,9 +67,16 @@ class PlaybackViewModel @Inject constructor(
     private val contentRepository: ContentRepository,
     private val watchHistoryDao: WatchHistoryDao,
     private val traktRepository: TraktRepository,
+    private val imdbDevApi: ImdbDevApi,
     private val traktOAuthManager: TraktOAuthManager,
     private val dispatchers: AppDispatchers
 ) : ViewModel() {
+
+    private val _advisories = MutableStateFlow<List<String>>(emptyList())
+    val advisories = _advisories.asStateFlow()
+
+    private val _contentRating = MutableStateFlow<String?>(null)
+    val contentRating = _contentRating.asStateFlow()
 
     private var _player: ExoPlayer? = null
     val player: ExoPlayer
@@ -152,6 +168,8 @@ class PlaybackViewModel @Inject constructor(
             player.playWhenReady = true
             // Start position updates
             startProgressTracking()
+
+            fetchContentRating(contentId, contentType)
 
             // Start controls hide timer
             startControlsHideTimer()
@@ -416,6 +434,33 @@ class PlaybackViewModel @Inject constructor(
             }
             if (_showUpNextModal.value) {
                 playNext()
+            }
+        }
+    }
+
+    fun fetchContentRating(contentId: String, type: ContentType) {
+        viewModelScope.launch(dispatchers.io) {
+            try {
+                // Get the IMDB ID from our database/TMDB
+                val details = (contentRepository.getDetails(contentId, type) as? Result.Success)?.data
+                val imdbId = details?.externalIds?.imdbId
+                _contentRating.value = details?.contentRating // e.g., "TV-MA" or "R"
+
+                if (!imdbId.isNullOrEmpty()) {
+                    val formattedImdbId = if (imdbId.startsWith("tt")) imdbId else "tt$imdbId"
+
+                    val response = imdbDevApi.getParentsGuide(formattedImdbId)
+
+                    val mappedReasons = response?.mapNotNull { (category, severity) ->
+                        ADVISORY_MAPPING[category]?.get(severity.lowercase())
+                    }
+
+                    if (mappedReasons != null) {
+                        _advisories.value = mappedReasons
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

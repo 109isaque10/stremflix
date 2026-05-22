@@ -1,10 +1,7 @@
 package com.stremflix.data.di
 
 import com.stremflix.data.local.PreferencesDataSource
-import com.stremflix.data.remote.OmdbApi
-import com.stremflix.data.remote.StremioApi
-import com.stremflix.data.remote.TmdbApi
-import com.stremflix.data.remote.TraktApi
+import com.stremflix.data.remote.*
 import com.stremflix.data.repository.TraktTokenRepository
 import dagger.Module
 import dagger.Provides
@@ -45,4 +42,10 @@ object ApiModule {
         httpClient: HttpClient,
         preferencesDataSource: PreferencesDataSource
     ): OmdbApi = OmdbApi(httpClient, preferencesDataSource)
+
+    @Provides
+    @Singleton
+    fun provideImdbDevApi(
+        httpClient: HttpClient,
+    ): ImdbDevApi = ImdbDevApi(httpClient)
 }

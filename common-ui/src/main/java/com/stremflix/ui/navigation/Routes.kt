@@ -25,6 +25,11 @@ sealed class AppRoute {
     data object Splash : AppRoute()
 
     @Serializable
+    data class CategoryBrowse(
+        val genreName: String?
+    ) : AppRoute()
+
+    @Serializable
     data class Details(
         val contentTitle: String,
         val contentSynopsis: String?,

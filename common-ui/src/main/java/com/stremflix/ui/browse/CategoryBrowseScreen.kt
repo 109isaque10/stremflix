@@ -1,6 +1,5 @@
 package com.stremflix.ui.browse
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -17,8 +16,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.stremflix.data.model.ContentItem
-import com.stremflix.ui.components.ContentCard
 import com.stremflix.ui.R
+import com.stremflix.ui.components.ContentCard
 import com.stremflix.ui.theme.NetflixBlack
 import com.stremflix.ui.theme.NetflixSurfaceLight
 import com.stremflix.ui.theme.NetflixTextPrimary
@@ -27,7 +26,7 @@ import com.stremflix.ui.theme.NetflixTextSecondary
 @Composable
 fun CategoryBrowseScreen(
     viewModel: CategoryBrowseViewModel = hiltViewModel(),
-    onNavigateToDetails: (String, String) -> Unit
+    onNavigateToDetails: (String, String?, String, String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
@@ -68,7 +67,7 @@ fun CategoryBrowseScreen(
                     ContentGrid(
                         items = state.items,
                         onItemSelected = { item ->
-                            onNavigateToDetails(item.id, item.type.name.lowercase())
+                            onNavigateToDetails(item.title, item.synopsis, item.id, item.type.name.lowercase())
                         },
                         modifier = Modifier.padding(padding)
                     )

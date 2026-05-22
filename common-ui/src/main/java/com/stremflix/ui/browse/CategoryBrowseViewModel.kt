@@ -1,11 +1,14 @@
 package com.stremflix.ui.browse
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.stremflix.core.util.AppDispatchers
 import com.stremflix.data.mapper.toDomainItem
 import com.stremflix.data.remote.TmdbApi
 import com.stremflix.data.util.TmdbGenres
+import com.stremflix.ui.navigation.AppRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,17 +24,28 @@ sealed class CategoryBrowseUiState {
 
 @HiltViewModel
 class CategoryBrowseViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val tmdbApi: TmdbApi,
     private val dispatchers: AppDispatchers
 ) : ViewModel() {
+
+    private val args: AppRoute.CategoryBrowse = savedStateHandle.toRoute<AppRoute.CategoryBrowse>()
 
     val categories = TmdbGenres.MOVIE.values.sorted()
 
     private val _selectedCategory = MutableStateFlow<String?>(null)
     val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
 
+    val genreName = args.genreName
+
     private val _uiState = MutableStateFlow<CategoryBrowseUiState>(CategoryBrowseUiState.Loading)
     val uiState: StateFlow<CategoryBrowseUiState> = _uiState.asStateFlow()
+
+    init{
+        if(!genreName.isNullOrEmpty()) {
+            selectCategory(genreName)
+        }
+    }
 
     fun selectCategory(category: String) {
         _selectedCategory.value = category
@@ -57,7 +71,7 @@ class CategoryBrowseViewModel @Inject constructor(
                 // Combine, remove duplicates by ID, sort by year descending
                 val combined = (movieItems + tvItems)
                     .distinctBy { it.id }
-                    .sortedByDescending { it.year ?: 0 }
+                    .sortedByDescending { it.popularity ?: 0f }
 
                 _uiState.value = CategoryBrowseUiState.Success(combined)
             } catch (e: Exception) {

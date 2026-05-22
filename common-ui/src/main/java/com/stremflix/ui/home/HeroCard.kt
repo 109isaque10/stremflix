@@ -1,16 +1,13 @@
 package com.stremflix.ui.home
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import coil.compose.SubcomposeAsyncImage
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -19,15 +16,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.stremflix.data.model.ContentItem
 import com.stremflix.ui.R
 import com.stremflix.ui.components.MatchBadge
-import com.stremflix.ui.components.QualityBadgeRow
 import com.stremflix.ui.components.VerticalFadeOverlay
 import com.stremflix.ui.theme.NetflixBlack
-import com.stremflix.ui.theme.NetflixMatchGreen
 import com.stremflix.ui.theme.NetflixRed
 import com.stremflix.ui.theme.NetflixTextPrimary
 import com.stremflix.ui.theme.NetflixTextSecondary
@@ -56,7 +51,7 @@ fun HeroCard(
             .clip(RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp))
             .background(NetflixBlack)
     ) {
-    		val imageUrl = item.backdropUrl ?: item.posterUrl
+        val imageUrl = item.backdropUrl ?: item.posterUrl
         // Background Image (Fallback if video fails or while loading)
         if (!imageUrl.isNullOrEmpty()) {
           SubcomposeAsyncImage(

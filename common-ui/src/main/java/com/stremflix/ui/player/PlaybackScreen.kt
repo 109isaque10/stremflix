@@ -33,6 +33,7 @@ fun PlaybackScreen(
     contentSynopsis: String?,
     contentId: String,
     contentType: String,
+    isTvMode: Boolean,
     season: Int? = null,
     episode: Int? = null,
     onBack: () -> Unit,
@@ -43,6 +44,8 @@ fun PlaybackScreen(
     val upNextInfo by viewModel.upNextInfo.collectAsState()
     val countdown by viewModel.countdownSeconds.collectAsState()
     val progress by viewModel.currentPosition.collectAsState()
+    val advisories by viewModel.advisories.collectAsState()
+    val contentRating by viewModel.contentRating.collectAsState()
 
     val context = LocalContext.current
     val activity = context as? Activity
@@ -134,11 +137,18 @@ fun PlaybackScreen(
             season = season,
             episode = episode,
             uiState = uiState,
+            isTvMode = isTvMode,
             progress = progressPercent,
             onPlayPause = viewModel::onPlayPause,
             onSeek = viewModel::onSeekTo,
             onBack = onBack,
             modifier = Modifier.align(Alignment.Center)
+        )
+
+        ContentRatingPopup(
+            rating = contentRating,
+            advisories = advisories,
+            modifier = Modifier.align(Alignment.TopStart)
         )
 
         if (showUpNext) {
