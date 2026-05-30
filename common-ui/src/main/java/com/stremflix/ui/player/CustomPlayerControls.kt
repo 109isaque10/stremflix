@@ -30,6 +30,7 @@ import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.TrackSelectionDialogBuilder
+import androidx.navigation.NavHostController
 import com.stremflix.ui.R
 import com.stremflix.ui.theme.NetflixRed
 import com.stremflix.ui.theme.NetflixTextPrimary
@@ -49,7 +50,7 @@ fun CustomPlayerControls(
     progress: Float,
     onPlayPause: () -> Unit,
     onSeek: (Long) -> Unit,
-    onBack: () -> Unit,
+    navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
     var isVisible by remember { mutableStateOf(true) }
@@ -138,7 +139,7 @@ fun CustomPlayerControls(
                         .padding(horizontal = 24.dp, vertical = 24.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { player.stop(); navController.popBackStack() }) {
                         Icon(
                             imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_back),
                             contentDescription = stringResource(id = R.string.playback_back),

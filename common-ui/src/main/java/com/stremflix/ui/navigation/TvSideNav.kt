@@ -4,9 +4,8 @@ package com.stremflix.ui.navigation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
@@ -29,7 +28,7 @@ import androidx.compose.ui.unit.sp
 fun TvSideNav(
     navItems: List<NavItem>, // Reusing your existing nav items
     currentRoute: String?,
-    onNavigate: (String) -> Unit,
+    onNavigate: (Any) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var isNavFocused by remember { mutableStateOf(false) }
@@ -61,13 +60,17 @@ fun TvSideNav(
         horizontalAlignment = Alignment.Start
     ) {
         navItems.forEach { item ->
-            val isSelected = currentRoute == item.route
+            val isSelected = currentRoute?.let { destRouteString ->
+                // If item.route is an AppRoute, compare by class name
+                val routeClassName = item.route::class.qualifiedName
+                destRouteString == routeClassName || destRouteString.contains(item.route::class.simpleName ?: "")
+            } == true
 
             TvNavItem(
                 item = item,
                 isSelected = isSelected,
                 isNavExpanded = isNavFocused,
-                onClick = { onNavigate(item.route as String) }
+                onClick = { onNavigate(item.route) }
             )
         }
     }
@@ -94,29 +97,33 @@ private fun TvNavItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 16.dp, horizontal = 20.dp)
-            .focusable() // ✅ CRITICAL: Makes this row selectable by the TV D-Pad
+            .focusable()
             .onFocusChanged { isItemFocused = it.isFocused }
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .background(
+                if (isSelected || isItemFocused)
+                    Color.White.copy(alpha = 0.12f)
+                else
+                    Color.Transparent
+            )
+            .border(
+                width = if (isSelected || isItemFocused) 3.dp else 0.dp,
+                color = if (isSelected || isItemFocused) Color.White else Color.Transparent
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = ImageVector.vectorResource(item.iconResId),
-            contentDescription = stringResource(id = item.labelResId),
-            tint = contentColor,
-            modifier = Modifier.size(24.dp)
+            contentDescription = null,
+            tint = contentColor
         )
-
-        AnimatedVisibility(
-            visible = isNavExpanded,
-            enter = fadeIn(tween(300, delayMillis = 100)), // Slight delay looks premium
-            exit = fadeOut(tween(150))
-        ) {
+        AnimatedVisibility(visible = isNavExpanded) {
+            Spacer(Modifier.width(16.dp))
             Text(
                 text = stringResource(id = item.labelResId),
                 color = contentColor,
-                fontSize = 16.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                modifier = Modifier.padding(start = 24.dp)
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }

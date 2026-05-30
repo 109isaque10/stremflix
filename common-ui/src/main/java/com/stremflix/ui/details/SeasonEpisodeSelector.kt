@@ -3,13 +3,19 @@ package com.stremflix.ui.details
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -36,41 +42,54 @@ fun SeasonEpisodeSelector(
     var expanded = remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
-        // Season Dropdown
-        ExposedDropdownMenuBox(
-            expanded = expanded.value,
-            onExpandedChange = { expanded.value = !expanded.value }
-        ) {
-            OutlinedTextField(
-                value = "Season $selectedSeason",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Select Season", color = NetflixTextSecondary) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded.value) },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = NetflixRed,
-                    unfocusedBorderColor = Color(0xFF333333)
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-            )
-
-            ExposedDropdownMenu(
-                expanded = expanded.value,
-                onDismissRequest = { expanded.value = false }
-            ) {
-                seasons.forEach { seasonNum ->
-                    DropdownMenuItem(
-                        text = { Text("Season $seasonNum", color = NetflixTextPrimary) },
-                        onClick = {
-                            onSeasonSelected(seasonNum)
-                            expanded.value = false
-                        }
-                    )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(seasons) { seasonNum ->
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (seasonNum == selectedSeason) Color.White else Color(0xFF333333))
+                        .clickable { onSeasonSelected(seasonNum) }
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text("Season $seasonNum", color = Color.Black)
                 }
             }
         }
+//        // Season Dropdown
+//        ExposedDropdownMenuBox(
+//            expanded = expanded.value,
+//            onExpandedChange = { expanded.value = !expanded.value }
+//        ) {
+//            OutlinedTextField(
+//                value = "Season $selectedSeason",
+//                onValueChange = {},
+//                readOnly = true,
+//                label = { Text("Select Season", color = NetflixTextSecondary) },
+//                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded.value) },
+//                colors = OutlinedTextFieldDefaults.colors(
+//                    focusedBorderColor = NetflixRed,
+//                    unfocusedBorderColor = Color(0xFF333333)
+//                ),
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+//            )
+//
+//            ExposedDropdownMenu(
+//                expanded = expanded.value,
+//                onDismissRequest = { expanded.value = false }
+//            ) {
+//                seasons.forEach { seasonNum ->
+//                    DropdownMenuItem(
+//                        text = { Text("Season $seasonNum", color = NetflixTextPrimary) },
+//                        onClick = {
+//                            onSeasonSelected(seasonNum)
+//                            expanded.value = false
+//                        }
+//                    )
+//                }
+//            }
+//        }
 
         Spacer(Modifier.height(16.dp))
 

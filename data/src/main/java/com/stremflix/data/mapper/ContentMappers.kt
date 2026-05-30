@@ -193,6 +193,7 @@ fun ContentItem.toEntity(): ContentEntity {
         posterUrl = posterUrl,
         backdropUrl = backdropUrl,
         rating = rating,
+        contentRating = contentRating,
         synopsis = synopsis,
         genresJson = Converters.toStringList(genres),
         castJson = Converters.toStringList(cast),
@@ -218,7 +219,7 @@ fun ContentEntity.toDomainItem(): ContentItem {
         posterUrl = posterUrl,
         backdropUrl = backdropUrl,
         rating = rating,
-        contentRating = null, // Not stored in entity for now
+        contentRating = contentRating,
         synopsis = synopsis,
         genres = Converters.fromStringList(genresJson),
         cast = Converters.fromStringList(castJson),

@@ -13,6 +13,7 @@ data class ContentEntity(
     val posterUrl: String?,
     val backdropUrl: String?,
     val rating: Float?,
+    val contentRating: String?,
     val synopsis: String?,
     val genresJson: String, // JSON string for List<String>
     val castJson: String,   // JSON string for List<String>

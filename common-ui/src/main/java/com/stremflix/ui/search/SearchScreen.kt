@@ -1,9 +1,9 @@
 package com.stremflix.ui.search
 
-import androidx.compose.foundation.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -12,7 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -20,20 +19,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.stremflix.data.model.ContentItem
+import com.stremflix.ui.R
 import com.stremflix.ui.components.ContentCard
 import com.stremflix.ui.components.ErrorState
-import com.stremflix.ui.R
-import com.stremflix.ui.theme.NetflixBlack
-import com.stremflix.ui.theme.NetflixRed
-import com.stremflix.ui.theme.NetflixSurfaceLight
-import com.stremflix.ui.theme.NetflixTextPrimary
-import com.stremflix.ui.theme.NetflixTextSecondary
+import com.stremflix.ui.theme.*
 
 @Composable
 fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel(),
     onNavigateToDetails: (String, String?, String, String) -> Unit,
-    isTvMode: Boolean = false
+    isTvMode: Boolean = false,
+    scaffoldPadding: PaddingValues
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val query by viewModel.query.collectAsState()

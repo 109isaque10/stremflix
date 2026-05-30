@@ -19,11 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.stremflix.core.domain.model.IdType
 import com.stremflix.ui.R
-import com.stremflix.ui.theme.NetflixBlack
-import com.stremflix.ui.theme.NetflixRed
-import com.stremflix.ui.theme.NetflixSurfaceLight
-import com.stremflix.ui.theme.NetflixTextPrimary
-import com.stremflix.ui.theme.NetflixTextSecondary
+import com.stremflix.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -44,6 +40,7 @@ fun SettingsScreen(
     var traktClientSecret by remember { mutableStateOf(prefs.traktClientSecret) }
     var omdbApiKey by remember { mutableStateOf(prefs.omdbApiKey ?: "") }
     var tmdbLanguage by remember { mutableStateOf(prefs.tmdbLanguage) }
+    var tmdbRegion by remember { mutableStateOf(prefs.tmdbRegion) }
     var audioLang by remember { mutableStateOf(prefs.preferredAudioLanguage) }
     var subLang by remember { mutableStateOf(prefs.preferredSubtitleLanguage) }
     var forceSubs by remember { mutableStateOf(prefs.forceSubtitles) }
@@ -114,6 +111,17 @@ fun SettingsScreen(
                     onSelected = {
                         tmdbLanguage = it
                         viewModel.updateTmdbLanguage(it) // Add this to ViewModel
+                    }
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                RegionDropdown(
+                    label = stringResource(R.string.settings_tmdb_region),
+                    selected = tmdbRegion,
+                    onSelected = {
+                        tmdbRegion = it
+                        viewModel.updateTmdbRegion(it) // Add this to ViewModel
                     }
                 )
 
@@ -445,6 +453,52 @@ private fun LanguageDropdown(
             onDismissRequest = { expanded = false }
         ) {
             languages.forEach { (code, name) ->
+                DropdownMenuItem(
+                    text = { Text(name, color = NetflixTextPrimary) },
+                    onClick = {
+                        onSelected(code)
+                        expanded = false
+                    },
+                    colors = MenuDefaults.itemColors(textColor = NetflixTextPrimary)
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun RegionDropdown(
+    label: String,
+    selected: String,
+    onSelected: (String) -> Unit
+) {
+    val regions = listOf("US" to "United States", "ES" to "Spanish", "FR" to "France", "DE" to "Germany", "JP" to "Japanese", "KR" to "Korean", "PT" to "Portugal", "BR" to "Brazil", "RU" to "Russia", "IT" to "Italia", "CN" to "China")
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = regions.find { it.first == selected }?.second ?: selected,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label, color = NetflixTextSecondary) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = NetflixRed,
+                unfocusedBorderColor = Color(0xFF333333),
+                focusedTextColor = NetflixTextPrimary,
+                unfocusedTextColor = NetflixTextPrimary
+            ),
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            regions.forEach { (code, name) ->
                 DropdownMenuItem(
                     text = { Text(name, color = NetflixTextPrimary) },
                     onClick = {

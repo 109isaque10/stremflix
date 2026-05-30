@@ -15,13 +15,15 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import com.stremflix.ui.home.HomeViewModel
 import com.stremflix.ui.player.PlayerManager
 import com.stremflix.ui.theme.NetflixBlack
 
 @Composable
 fun SplashScreen(
     viewModel: SplashViewModel = hiltViewModel(),
-    playerManager: PlayerManager,
+    homeViewModel: HomeViewModel = hiltViewModel(),
+    playerManager: PlayerManager = viewModel.playerManager,
     onNavigateToHome: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -30,6 +32,7 @@ fun SplashScreen(
             playerManager = playerManager,
             onFinish = onNavigateToHome,
             viewModel = viewModel,
+            homeViewModel = homeViewModel,
             modifier = modifier
         )
     }
@@ -39,6 +42,7 @@ fun SplashScreen(
 @Composable
 fun SplashVideoLayer(
     viewModel: SplashViewModel,
+    homeViewModel: HomeViewModel,
     playerManager: PlayerManager,
     onFinish: () -> Unit,
     modifier: Modifier = Modifier
@@ -49,10 +53,11 @@ fun SplashVideoLayer(
     val playbackState by playerManager.playbackState.collectAsState()
 
     LaunchedEffect(state) {
-        if (state == SplashState.ReadyToPlay) {
+        if (state == SplashState.ReadyToPlay)
             // Unpause the player!
             player.playWhenReady = true
-        }
+        else if (state == SplashState.Preparing)
+            homeViewModel.loadHomeContent()
     }
 
     LaunchedEffect(playbackState) {
@@ -68,7 +73,7 @@ fun SplashVideoLayer(
             PlayerView(ctx).apply {
                 this.player = player
                 useController = false
-                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
                 setBackgroundColor(android.graphics.Color.BLACK)
 
                 player.playWhenReady = false

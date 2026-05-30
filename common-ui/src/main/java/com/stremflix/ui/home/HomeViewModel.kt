@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.stremflix.core.domain.model.ContentType
 import com.stremflix.core.domain.model.Result
 import com.stremflix.core.util.AppDispatchers
+import com.stremflix.core.util.ContentLoadManager
 import com.stremflix.data.local.PreferencesDataSource
 import com.stremflix.data.model.ContentItem
 import com.stremflix.data.model.Episode
@@ -54,12 +55,15 @@ class HomeViewModel @Inject constructor(
     private val traktRepository: TraktRepository,
     private val watchHistoryRepository: WatchHistoryRepository,
     private val streamRepository: StreamRepository,
+    private val contentLoadManager: ContentLoadManager,
     private val preferencesDataSource: PreferencesDataSource,
     private val dispatchers: AppDispatchers
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    private var hasLoaded = false
 
     private val _showStreamDialog = MutableStateFlow(false)
     val showStreamDialog = _showStreamDialog.asStateFlow()
@@ -70,13 +74,13 @@ class HomeViewModel @Inject constructor(
     var currentSelectedItem: ContentItem? = null
         private set
 
-    init {
-        loadHomeContent()
-    }
+//    init {
+//        loadHomeContent()
+//    }
 
-    fun onPlayClicked(episode: Episode?) {
+    fun onPlayClicked(episode: Episode?, item: ContentItem? = currentSelectedItem) {
         viewModelScope.launch(dispatchers.io) {
-            val item = currentSelectedItem ?: return@launch
+            val item = item ?: return@launch
             handlePlayLogic(
                 item = item,
                 specificEpisode = episode,
@@ -99,8 +103,12 @@ class HomeViewModel @Inject constructor(
     }
 
     fun loadHomeContent() {
+        if (hasLoaded) return
+        hasLoaded = true
+
         viewModelScope.launch(dispatchers.io) {
             _uiState.value = HomeUiState.Loading
+            contentLoadManager.setLoading()
 
             val isTraktEnabled = checkTraktEnabled(preferencesDataSource)
 
@@ -123,8 +131,10 @@ class HomeViewModel @Inject constructor(
                 context.getString(R.string.row_continue_watching) to suspend { loadContinueWatching() },
                 context.getString(R.string.row_because_you_watched, lastWatchedTitle) to suspend { loadBecauseYouWatched() },
                 context.getString(R.string.row_recommended_for_you) to suspend { if (isTraktEnabled) loadTraktRecommendations() else emptyList() },
+                "On your list" to suspend { loadMyList() },
                 context.getString(R.string.row_trending_now) to suspend { if (isTraktEnabled) loadTraktTrending() else loadTmdbTrendingToday() },
                 context.getString(R.string.row_most_watched_week) to suspend { if (isTraktEnabled) loadTraktMostWatchedWeekly() else loadTmdbTrendingWeek() }
+
             )
 
             val results = contentRepository.loadInParallel(rowDefinitions, concurrencyLimit = 8) { (title, loader) ->
@@ -136,8 +146,10 @@ class HomeViewModel @Inject constructor(
 
             if (rows.isEmpty()) {
                 _uiState.value = HomeUiState.Error("No content available.")
+                contentLoadManager.setError("No content available.")
             } else {
                 _uiState.value = HomeUiState.Success(rows)
+                contentLoadManager.setLoaded()
             }
         }
     }
@@ -203,6 +215,10 @@ class HomeViewModel @Inject constructor(
         }
 
         return populateImages(recommendations, contentRepository)
+    }
+
+    private suspend fun loadMyList(): List<ContentItem> {
+        return myListRepository.getMyListItems().first()
     }
 
     private suspend fun loadTraktRecommendations(): List<ContentItem> {

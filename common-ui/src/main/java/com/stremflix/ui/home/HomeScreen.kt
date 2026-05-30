@@ -51,9 +51,12 @@ fun HomeScreen(
     val homeState by homeViewModel.uiState.collectAsState()
     val moviesState by moviesViewModel.uiState.collectAsState()
     val seriesState by seriesViewModel.uiState.collectAsState()
-    val myListState by myListViewModel.uiState.collectAsState()
 
-    val unifiedState: HomeUiState = remember(filterType, homeState, moviesState, seriesState, myListState) {
+//    LaunchedEffect(Unit) {
+//        homeViewModel.loadHomeContent()
+//    }
+
+    val unifiedState: HomeUiState = remember(filterType, homeState, moviesState, seriesState) {
         when (filterType) {
             "movie" -> when (moviesState) {
                 is MoviesUiState.Loading -> HomeUiState.Loading
@@ -66,12 +69,6 @@ fun HomeScreen(
                 is SeriesUiState.Success -> HomeUiState.Success((seriesState as SeriesUiState.Success).rows)
                 is SeriesUiState.Error -> HomeUiState.Error((seriesState as SeriesUiState.Error).message)
             }
-
-//            "list" -> when (myListState) {
-//                is MyListUiState.Loading -> HomeUiState.Loading
-//                is MyListUiState.Success -> HomeUiState.Success((myListState as MyListUiState.Success).rows)
-//                is MyListUiState.Error -> HomeUiState.Error((myListState as MyListUiState.Error).message)
-//            }
 
             else -> homeState // Default to standard Home
         } as HomeUiState
@@ -114,7 +111,7 @@ fun HomeScreen(
                         Image(
                             painter = painterResource(id = R.drawable.tv_banner), // Or stremflix_logo if you prefer
                             contentDescription = "StremFlix",
-                            modifier = Modifier.height(36.dp)
+                            modifier = Modifier.height(48.dp)
                         )
 
                         val titleStr = when(filterType) {
@@ -218,7 +215,7 @@ fun HomeScreen(
                                 item {
                                     HeroCard(
                                         item = firstRow.items.first(),
-                                        onPlayClick = { homeViewModel.onPlayClicked(null) },
+                                        onPlayClick = { homeViewModel.onPlayClicked(null, firstRow.items.first()) },
                                         onMoreInfoClick = {
                                             onNavigateToDetails(
                                                 firstRow.items.first().title,

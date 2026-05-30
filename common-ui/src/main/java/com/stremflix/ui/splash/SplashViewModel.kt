@@ -2,8 +2,6 @@ package com.stremflix.ui.splash
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.stremflix.core.domain.model.ContentType
-import com.stremflix.core.domain.model.Result
 import com.stremflix.core.util.AppDispatchers
 import com.stremflix.core.util.ContentLoadManager
 import com.stremflix.core.util.ContentLoadState
@@ -15,7 +13,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 sealed class SplashState {
@@ -32,14 +29,12 @@ class SplashViewModel @Inject constructor(
     val playerManager: PlayerManager,
     private val contentRepository: ContentRepository,
     private val contentLoadManager: ContentLoadManager,
+    private val isTvMode: Boolean,
     private val dispatchers: AppDispatchers
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<SplashState>(SplashState.Preparing)
     val state: StateFlow<SplashState> = _state.asStateFlow()
-
-    private var _contentLoaded = false
-    val contentLoaded: Boolean get() = _contentLoaded
 
     init {
         initializeSplash()
@@ -47,7 +42,10 @@ class SplashViewModel @Inject constructor(
 
     private fun initializeSplash() {
         viewModelScope.launch(dispatchers.main) {
-            playerManager.setMediaItemRes(R.raw.splash_intro)
+            if(isTvMode)
+                playerManager.setMediaItemRes(R.raw.splash_intro)
+            else
+                playerManager.setMediaItemRes(R.raw.splash_intro_mobile)
             playerManager.pause()
             playerManager.seekTo(0)
         }
@@ -56,8 +54,8 @@ class SplashViewModel @Inject constructor(
             contentLoadManager.state.collect { loadState ->
                 when (loadState) {
                     is ContentLoadState.NotStarted -> {
-                        // Trigger HomeViewModel to start loading (optional)
-                        // Or just wait for it to start on its own
+                        // Trigger HomeViewModel to start loading
+                        _state.value = SplashState.Preparing
                     }
                     is ContentLoadState.Loading -> {
                         _state.value = SplashState.WaitingForContent

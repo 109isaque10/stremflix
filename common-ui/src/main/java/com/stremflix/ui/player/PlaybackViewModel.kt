@@ -44,13 +44,7 @@ data class UpNextInfo(
     val seasonEpisode: String?
 )
 
-private val ADVISORY_MAPPING = mapOf(
-    "VIOLENCE" to mapOf("mild" to "Violence", "moderate" to "Intense Violence", "severe" to "Graphic Violence"),
-    "SEXUAL_CONTENT" to mapOf("mild" to "Sexual Situations", "moderate" to "Sexual Content", "severe" to "Explicit Sexual Content"),
-    "PROFANITY" to mapOf("mild" to "Mild Language", "moderate" to "Strong Language", "severe" to "Inadequate Language"),
-    "ALCOHOL_DRUGS" to mapOf("mild" to "Substance References", "moderate" to "Substance Use", "severe" to "Heavy Substance Use"),
-    "FRIGHTENING_INTENSE_SCENES" to mapOf("mild" to "Tense Scenes", "moderate" to "Frightening Scenes", "severe" to "Extreme Terror")
-)
+
 
 sealed class PlaybackUiState {
     object Idle : PlaybackUiState()
@@ -449,14 +443,10 @@ class PlaybackViewModel @Inject constructor(
                 if (!imdbId.isNullOrEmpty()) {
                     val formattedImdbId = if (imdbId.startsWith("tt")) imdbId else "tt$imdbId"
 
-                    val response = imdbDevApi.getParentsGuide(formattedImdbId)
+                    val reasons = imdbDevApi.getParentsGuide(formattedImdbId)
 
-                    val mappedReasons = response?.mapNotNull { (category, severity) ->
-                        ADVISORY_MAPPING[category]?.get(severity.lowercase())
-                    }
-
-                    if (mappedReasons != null) {
-                        _advisories.value = mappedReasons
+                    if (reasons != null) {
+                        _advisories.value = reasons
                     }
                 }
             } catch (e: Exception) {

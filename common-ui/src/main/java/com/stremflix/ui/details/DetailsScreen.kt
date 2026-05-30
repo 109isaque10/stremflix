@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,6 +29,7 @@ import com.stremflix.data.model.Stream
 import com.stremflix.ui.R
 import com.stremflix.ui.components.MatchBadge
 import com.stremflix.ui.components.VerticalFadeOverlay
+import com.stremflix.ui.mylist.MyListViewModel
 import com.stremflix.ui.theme.NetflixBlack
 import com.stremflix.ui.theme.NetflixTextPrimary
 import com.stremflix.ui.theme.NetflixTextSecondary
@@ -39,7 +41,9 @@ fun DetailsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToPlayback: (String, String, String?, String, ContentType) -> Unit,
     isTvMode: Boolean = false,
-    viewModel: DetailsViewModel = hiltViewModel()
+    scaffoldPadding: PaddingValues,
+    viewModel: DetailsViewModel = hiltViewModel(),
+    myListViewModel: MyListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val streams by viewModel.streams.collectAsState()
@@ -84,6 +88,7 @@ fun DetailsScreen(
                     seasons = seasons,
                     selectedSeason = currentSeason,
                     episodes = episodes,
+                    myListViewModel = myListViewModel,
                     onSeasonSelected = { viewModel.onSeasonSelected(it) },
                     onEpisodeSelected = { viewModel.onPlayClicked(it) },
                     modifier = Modifier.fillMaxSize()
@@ -98,6 +103,7 @@ private fun DetailsContent(
     item: ContentItem,
     onPlayClick: () -> Unit,
     onBackClick: () -> Unit,
+    myListViewModel: MyListViewModel,
     seasons: List<Int>,
     selectedSeason: Int,
     episodes: List<Episode>,
@@ -105,6 +111,9 @@ private fun DetailsContent(
     onEpisodeSelected: (Episode) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isInList = produceState(false, item) {
+        value = myListViewModel.isInMyList(item)
+    }.value
     LazyColumn(
         modifier = modifier
     ) {
@@ -195,13 +204,14 @@ private fun DetailsContent(
 
                         // More Info (My List, etc. - simplified)
                         OutlinedButton(
-                            onClick = { /* Add to My List */ },
+                            onClick = { if (isInList) myListViewModel.removeFromList(item)
+                            else myListViewModel.addToList(item) },
                             colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFF333333), contentColor = Color.White),
                             shape = RoundedCornerShape(4.dp)
                         ) {
-                            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_list), contentDescription = null)
+                            Icon(imageVector = ImageVector.vectorResource(if(isInList) R.drawable.ic_check_circle else R.drawable.ic_list), contentDescription = null)
                             Spacer(Modifier.width(8.dp))
-                            Text(text = stringResource(id = R.string.detail_add_to_list), fontWeight = FontWeight.Bold)
+                            Text(text = stringResource(id = if(isInList) R.string.detail_remove_from_list else R.string.detail_add_to_list), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -212,6 +222,7 @@ private fun DetailsContent(
         item {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text(text = item.synopsis ?: "", color = NetflixTextSecondary, style = MaterialTheme.typography.bodyMedium)
+//                Text(text = item.toString(), color = NetflixTextSecondary, style = MaterialTheme.typography.bodyMedium)
                 if (item.genres.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
                     Text(item.genres.joinToString(" • "), color = NetflixTextSecondary, style = MaterialTheme.typography.bodySmall)

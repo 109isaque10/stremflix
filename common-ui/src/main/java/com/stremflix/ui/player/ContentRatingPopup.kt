@@ -47,7 +47,7 @@ fun ContentRatingPopup(
             modifier = Modifier
                 .background(
                     color = Color.Black.copy(alpha = 0.85f),
-                    shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp) // Flush flat against the left screen edge
+                    shape = RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp) // Flush flat against the left screen edge
                 )
                 .height(IntrinsicSize.Min) // Forces the Row to bound its height to the children
                 .padding(end = 24.dp, top = 16.dp, bottom = 16.dp)

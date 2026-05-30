@@ -6,7 +6,7 @@ object ApiEndpoints {
     const val TMDB_BASE = "https://api.themoviedb.org/3/"
     const val OMDB_BASE = "https://www.omdbapi.com/"
 
-    const val IMDB_BASE = "https://imdbapi.dev/"
+    const val IMDB_BASE = "https://api.imdbapi.dev/"
 
     const val TRAKT_API_VERSION = "2"
     const val TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/"

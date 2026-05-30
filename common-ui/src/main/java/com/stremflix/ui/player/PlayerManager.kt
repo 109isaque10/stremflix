@@ -1,8 +1,7 @@
 package com.stremflix.ui.player
 
-import android.content.ContentResolver
 import android.content.Context
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -45,8 +44,8 @@ class PlayerManager @Inject constructor(
     }
 
     suspend fun setMediaItemRes(resId: Int) = withContext(Dispatchers.Main) {
-        val uri = Uri.Builder().scheme(ContentResolver.SCHEME_ANDROID_RESOURCE).path(resId.toString()).build().toString()
-        setMediaItem(uri)
+        val uri = "android.resource://${context.packageName}/$resId".toUri()
+        setMediaItem(uri.toString())
     }
 
     suspend fun play() = withContext(Dispatchers.Main) {
@@ -55,6 +54,10 @@ class PlayerManager @Inject constructor(
 
     suspend fun pause() = withContext(Dispatchers.Main) {
         getPlayer().pause()
+    }
+
+    suspend fun stop() = withContext(Dispatchers.Main){
+        getPlayer().stop()
     }
 
     suspend fun seekTo(position: Long) = withContext(Dispatchers.Main) {

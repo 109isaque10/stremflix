@@ -1,7 +1,10 @@
 package com.stremflix.ui.navigation
 
+import android.annotation.SuppressLint
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -16,19 +19,22 @@ import com.stremflix.ui.browse.CategoryBrowseScreen
 import com.stremflix.ui.browse.CategoryBrowseViewModel
 import com.stremflix.ui.details.DetailsScreen
 import com.stremflix.ui.home.HomeScreen
+import com.stremflix.ui.home.HomeViewModel
 import com.stremflix.ui.player.PlaybackScreen
-import com.stremflix.ui.player.PlayerManager
 import com.stremflix.ui.search.SearchScreen
 import com.stremflix.ui.settings.SettingsScreen
 import com.stremflix.ui.splash.SplashScreen
-import com.stremflix.ui.splash.SplashViewModel
 
+@SuppressLint("UnrememberedGetBackStackEntry")
 @Composable
 fun StremFlixNavGraph(
     navController: NavHostController = rememberNavController(),
-    startDestination: Any = AppRoute.Home,
+    startDestination: Any = AppRoute.Splash,
+    scaffoldPadding: PaddingValues,
     isTvMode: Boolean = false
 ) {
+    val homeViewModel: HomeViewModel = viewModel()
+
     NavHost(
         navController = navController,
         startDestination = startDestination
@@ -42,7 +48,7 @@ fun StremFlixNavGraph(
                 },
                 onSuccess = {
                     // Navigate back to Settings after successful auth
-                    navController.popBackStack()
+                    navController.navigate(AppRoute.Settings)
                 }
             )
         }
@@ -60,7 +66,8 @@ fun StremFlixNavGraph(
                         AppRoute.PlaybackRoute(streamUrl, contentTitle, contentSynopsis, contentId, type)
                     )
                 },
-                onNavigateToCategory = {navController.navigate(AppRoute.CategoryBrowse(null))},
+                onNavigateToCategory = {genre -> navController.navigate(AppRoute.CategoryBrowse(genre))},
+                homeViewModel = homeViewModel,
                 isTvMode = isTvMode,
                 filterType = "home"
             )
@@ -71,6 +78,7 @@ fun StremFlixNavGraph(
                 onNavigateToDetails = { title, synopsis, id, type ->
                     navController.navigate(AppRoute.Details(title, synopsis, id, type))
                 },
+                scaffoldPadding = scaffoldPadding,
                 isTvMode = isTvMode
             )
         }
@@ -172,6 +180,7 @@ fun StremFlixNavGraph(
                         )
                     )
                 },
+                scaffoldPadding = scaffoldPadding,
                 isTvMode = isTvMode
             )
         }
@@ -197,16 +206,23 @@ fun StremFlixNavGraph(
                 season = route.season,
                 episode = route.episode,
                 isTvMode = isTvMode,
-                onBack = { navController.popBackStack() }
+                navController = navController
             )
         }
 
         composable<AppRoute.Splash> {
             // Get PlayerManager via Hilt (or pass from Activity)
-            val playerManager: PlayerManager = hiltViewModel<SplashViewModel>().playerManager // Or inject differently
+//            val playerManager: PlayerManager = hiltViewModel<SplashViewModel>().playerManager // Or inject differently
+//            val splashViewModel: SplashViewModel = hiltViewModel()
+//
+//            val homeViewModel: HomeViewModel = hiltViewModel()
+
+//            val playerManager: PlayerManager = splashViewModel.playerManager
 
             SplashScreen(
-                playerManager = playerManager,
+//                viewModel = splashViewModel,
+                homeViewModel = homeViewModel,
+//                playerManager = playerManager,
                 onNavigateToHome = {
                     navController.navigate(AppRoute.Home) {
                         popUpTo(AppRoute.Splash) { inclusive = true }

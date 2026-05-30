@@ -2,15 +2,12 @@
 
 package com.stremflix.ui.auth
 
-import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.stremflix.core.util.ApiEndpoints
 import com.stremflix.core.util.AppDispatchers
 import com.stremflix.data.local.PreferencesDataSource
 import com.stremflix.data.manager.TraktOAuthManager
 import com.stremflix.data.remote.dto.trakt.DeviceCodeResponse
-import com.stremflix.data.repository.PreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -19,13 +16,12 @@ import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.milliseconds
 
 sealed class TraktAuthUiState {
     object Idle : TraktAuthUiState()
     object DeviceCodeLoading : TraktAuthUiState()
     data class ShowDeviceCode(val code: DeviceCodeResponse) : TraktAuthUiState()
-    object PollingDeviceCode : TraktAuthUiState()
+//    object PollingDeviceCode : TraktAuthUiState()
     object Loading : TraktAuthUiState()
 }
 
@@ -47,6 +43,9 @@ class TraktAuthViewModel @Inject constructor(
 
     private val _deviceCode = MutableStateFlow<DeviceCodeResponse?>(null)
     val deviceCode: StateFlow<DeviceCodeResponse?> = _deviceCode.asStateFlow()
+
+    private val _isPolling = MutableStateFlow(false)
+    val isPolling: StateFlow<Boolean> = _isPolling.asStateFlow()
 
     private val _verificationUrl = MutableStateFlow("")
     val verificationUrl: StateFlow<String> = _verificationUrl.asStateFlow()
@@ -116,8 +115,8 @@ class TraktAuthViewModel @Inject constructor(
     }
 
     private suspend fun pollForTokenWithTimeout(deviceCode: String, intervalSeconds: Int) {
-        _uiState.value = TraktAuthUiState.PollingDeviceCode
-
+//        _uiState.value = TraktAuthUiState.PollingDeviceCode
+        _isPolling.value = true
         val maxAttempts = (600 / intervalSeconds) // 10 minutes max
         var attempts = 0
 
@@ -130,8 +129,8 @@ class TraktAuthViewModel @Inject constructor(
                 val result = oAuthManager.pollForDeviceToken(deviceCode)
                 if (result != null) {
                     _eventChannel.send(TraktAuthEvent.LoginSuccess)
+                    _isPolling.value = false
                     return
-                } else {
                 }
             } catch (e: Exception) {
                 // Trakt returns error if not yet authorized - this is normal

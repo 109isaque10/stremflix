@@ -24,8 +24,9 @@ object RepositoryModule {
     @Singleton
     fun provideContentRepository(
         tmdbApi: TmdbApi,
+        preferencesDataSource: PreferencesDataSource,
         contentDao: ContentDao
-    ): ContentRepository = ContentRepository(tmdbApi, contentDao)
+    ): ContentRepository = ContentRepository(tmdbApi, preferencesDataSource, contentDao)
 
     @Provides
     @Singleton

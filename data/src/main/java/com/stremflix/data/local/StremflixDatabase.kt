@@ -14,7 +14,7 @@ import com.stremflix.data.local.entity.*
         MyListEntity::class,
         WatchHistoryEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

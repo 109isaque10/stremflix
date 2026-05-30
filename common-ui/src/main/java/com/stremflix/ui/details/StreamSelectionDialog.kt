@@ -3,10 +3,11 @@ package com.stremflix.ui.details
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -20,7 +21,10 @@ import androidx.compose.ui.unit.dp
 import com.stremflix.data.model.Stream
 import com.stremflix.ui.R
 import com.stremflix.ui.components.QualityBadgeRow
-import com.stremflix.ui.theme.*
+import com.stremflix.ui.theme.NetflixBlack
+import com.stremflix.ui.theme.NetflixRed
+import com.stremflix.ui.theme.NetflixTextPrimary
+import com.stremflix.ui.theme.NetflixTextSecondary
 
 @Composable
 fun StreamSelectionDialog(
@@ -88,13 +92,26 @@ private fun StreamItem(
     stream: Stream,
     onClick: () -> Unit
 ) {
-    val mod = Modifier
+    // Track focus for this specific item (to change its color when hovering over it)
+    var isItemFocused by remember { mutableStateOf(false) }
+
+    // Netflix styling: White if hovering or selected, Gray if inactive
+    val contentColor = when {
+        isItemFocused -> Color.White
+        else -> Color.Gray
+    }
+
     Row(
-        modifier = mod
+        modifier = Modifier
+            .focusable()
             .fillMaxWidth()
             .clickable { onClick() }
             .padding(16.dp)
-            .onFocusChanged { mod.border(1.dp, NetflixFocusBorder) },
+            .onFocusChanged { isItemFocused = it.isFocused}
+            .border(
+                width = if (isItemFocused) 3.dp else 0.dp,
+                color = if (isItemFocused) Color.White else Color.Transparent
+            ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {

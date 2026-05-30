@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import androidx.navigation.NavHostController
 import com.stremflix.core.domain.model.ContentType
 import com.stremflix.ui.theme.NetflixBlack
 
@@ -36,7 +37,7 @@ fun PlaybackScreen(
     isTvMode: Boolean,
     season: Int? = null,
     episode: Int? = null,
-    onBack: () -> Unit,
+    navController: NavHostController,
     viewModel: PlaybackViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -141,7 +142,7 @@ fun PlaybackScreen(
             progress = progressPercent,
             onPlayPause = viewModel::onPlayPause,
             onSeek = viewModel::onSeekTo,
-            onBack = onBack,
+            navController = navController,
             modifier = Modifier.align(Alignment.Center)
         )
 

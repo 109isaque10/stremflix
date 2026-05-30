@@ -5,9 +5,10 @@ import com.stremflix.core.domain.model.ContentType
 import com.stremflix.core.domain.model.Result
 import com.stremflix.core.util.CacheConfig
 import com.stremflix.core.util.cached
+import com.stremflix.data.local.PreferencesDataSource
 import com.stremflix.data.local.dao.ContentDao
-import com.stremflix.data.local.entity.ContentEntity
 import com.stremflix.data.mapper.toDomainItem
+import com.stremflix.data.mapper.toEntity
 import com.stremflix.data.mapper.toEpisode
 import com.stremflix.data.model.ContentItem
 import com.stremflix.data.model.Episode
@@ -17,6 +18,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import javax.inject.Inject
@@ -26,6 +28,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Singleton
 class ContentRepository @Inject constructor(
     private val tmdbApi: TmdbApi,
+    private val preferencesDataSource: PreferencesDataSource,
     private val contentDao: ContentDao
 ) {
 
@@ -125,9 +128,10 @@ class ContentRepository @Inject constructor(
         }
 
         return try {
+            val region = preferencesDataSource.tmdbRegion.first()
             val id = contentId.toIntOrNull() ?: return Result.Error(ApiError(message = "Invalid ID"))
             val dto = if (contentType == ContentType.MOVIE) tmdbApi.getMovieDetails(id) else tmdbApi.getTvDetails(id)
-            val item = dto.toDomainItem(contentType)
+            val item = dto.toDomainItem(contentType, region)
             contentDao.insertContent(item.toEntity()) // Save full item
             Result.Success(item)
         } catch (e: Exception) {
@@ -206,52 +210,4 @@ class ContentRepository @Inject constructor(
     // Fallbacks for anticipated (Trakt is preferred, but these provide data)
     suspend fun getUpcomingSeries(page: Int = 1): Result<List<ContentItem>> = getCurrentlyAiring(page)
     suspend fun getAnticipatedSeries(page: Int = 1): Result<List<ContentItem>> = getPopular(ContentType.SERIES, page)
-}
-
-private fun ContentItem.toEntity(): ContentEntity {
-    return ContentEntity(
-        id = id,
-        type = type,
-        title = title,
-        year = year,
-        popularity = popularity,
-        posterUrl = posterUrl,
-        backdropUrl = backdropUrl,
-        rating = rating,
-        synopsis = synopsis,
-        genresJson = "", // Serialize genres to JSON
-        castJson = "",   // Serialize cast to JSON
-        runtime = runtime,
-        matchScore = matchScore,
-        releaseDate = releaseDate?.toString(),
-        imdbId = externalIds.imdbId,
-        tmdbId = externalIds.tmdbId,
-        traktId = externalIds.traktId,
-        tvdbId = externalIds.tvdbId,
-        lastWatched = lastWatched,
-        watchProgress = watchProgress
-    )
-}
-
-private fun ContentEntity.toDomainItem(): ContentItem {
-    return ContentItem(
-        id = id,
-        type = type,
-        title = title,
-        year = year,
-        popularity = popularity,
-        posterUrl = posterUrl,
-        backdropUrl = backdropUrl,
-        rating = rating,
-        contentRating = null,
-        synopsis = synopsis,
-        genres = emptyList(), // Parse JSON
-        cast = emptyList(),   // Parse JSON
-        runtime = runtime,
-        matchScore = matchScore,
-        releaseDate = releaseDate?.let { try { kotlinx.datetime.LocalDate.parse(it) } catch (e: Exception) { null } },
-        externalIds = com.stremflix.data.model.ExternalIds(imdbId, tmdbId, traktId, tvdbId),
-        lastWatched = lastWatched,
-        watchProgress = watchProgress
-    )
 }

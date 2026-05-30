@@ -2,13 +2,9 @@
 
 package com.stremflix.ui.auth
 
-import android.app.Activity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,12 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.stremflix.ui.R
-import com.stremflix.ui.theme.NetflixBlack
-import com.stremflix.ui.theme.NetflixRed
-import com.stremflix.ui.theme.NetflixSurfaceLight
-import com.stremflix.ui.theme.NetflixTextPrimary
-import com.stremflix.ui.theme.NetflixTextSecondary
-import kotlinx.coroutines.launch
+import com.stremflix.ui.theme.*
 
 @Composable
 fun TraktAuthScreen(
@@ -52,6 +43,7 @@ fun TraktAuthScreen(
                     snackbarHostState.showSnackbar("Error: ${event.message}")
                 }
                 is TraktAuthEvent.LoginSuccess -> {
+                    snackbarHostState.showSnackbar("Trakt authentication successful!")
                     onSuccess()
                 }
                 is TraktAuthEvent.OpenBrowser -> {
@@ -110,7 +102,6 @@ fun TraktAuthScreen(
                 }
                 is TraktAuthUiState.ShowDeviceCode -> {
                     deviceCode?.let { code ->
-                        println("✅ Showing device code: ${code.userCode}")
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -152,8 +143,8 @@ fun TraktAuthScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = NetflixTextSecondary
                             )
-
-                            if (state is TraktAuthUiState.PollingDeviceCode) {
+                            val isPolling = viewModel.isPolling.collectAsState().value
+                            if (isPolling) {
                                 Spacer(Modifier.height(16.dp))
                                 CircularProgressIndicator(color = NetflixRed)
                                 Text(
@@ -167,11 +158,6 @@ fun TraktAuthScreen(
                         // Fallback if deviceCode is null
                         Text("Error: No device code received", color = Color.Red)
                     }
-                }
-                is TraktAuthUiState.PollingDeviceCode -> {
-                    CircularProgressIndicator(color = NetflixRed)
-                    Spacer(Modifier.height(16.dp))
-                    Text(text = stringResource(R.string.trakt_waiting), style = MaterialTheme.typography.bodyMedium, color = NetflixTextSecondary)
                 }
                 is TraktAuthUiState.Loading -> {
                     CircularProgressIndicator(color = NetflixRed)
