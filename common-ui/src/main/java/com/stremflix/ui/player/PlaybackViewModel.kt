@@ -3,15 +3,14 @@ package com.stremflix.ui.player
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.common.C
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
+import androidx.media3.common.*
 import androidx.media3.exoplayer.ExoPlayer
 import com.stremflix.core.domain.model.ContentType
 import com.stremflix.core.domain.model.IdType
 import com.stremflix.core.domain.model.Result
 import com.stremflix.core.util.AppDispatchers
 import com.stremflix.core.util.PlaybackConfig
+import com.stremflix.data.local.PreferencesDataSource
 import com.stremflix.data.local.dao.WatchHistoryDao
 import com.stremflix.data.local.entity.WatchHistoryEntity
 import com.stremflix.data.manager.TraktOAuthManager
@@ -33,9 +32,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 data class UpNextInfo(
     val title: String,
@@ -44,7 +45,22 @@ data class UpNextInfo(
     val seasonEpisode: String?
 )
 
+data class TrackGroup(
+    val trackType: Int,
+    val originalTrackGroup: Tracks.Group,
+    val isSelected: Boolean,
+    val isSupported: Boolean,
+    val isSubtitleOff: Boolean =true,
+    var tracks: List<Track> = emptyList()
+)
 
+data class Track(
+    val isSupported: Boolean,
+    val isSelected: Boolean,
+    val isSubtitleOff: Boolean=true,
+    val trackGroup: TrackGroup,
+    val trackFormat: Format
+)
 
 sealed class PlaybackUiState {
     object Idle : PlaybackUiState()
@@ -63,7 +79,8 @@ class PlaybackViewModel @Inject constructor(
     private val traktRepository: TraktRepository,
     private val imdbDevApi: ImdbDevApi,
     private val traktOAuthManager: TraktOAuthManager,
-    private val dispatchers: AppDispatchers
+    private val dispatchers: AppDispatchers,
+    val preferencesDataSource: PreferencesDataSource
 ) : ViewModel() {
 
     private val _advisories = MutableStateFlow<List<String>>(emptyList())
@@ -71,6 +88,10 @@ class PlaybackViewModel @Inject constructor(
 
     private val _contentRating = MutableStateFlow<String?>(null)
     val contentRating = _contentRating.asStateFlow()
+
+    private val _trackGroups = MutableStateFlow<List<TrackGroup>>(emptyList())
+    val trackGroups = _trackGroups.asStateFlow()
+
 
     private var _player: ExoPlayer? = null
     val player: ExoPlayer
@@ -83,6 +104,7 @@ class PlaybackViewModel @Inject constructor(
                                 Player.STATE_BUFFERING -> _uiState.value = PlaybackUiState.Buffering
                                 Player.STATE_READY -> _uiState.value = if (playWhenReady) PlaybackUiState.Playing else PlaybackUiState.Paused
                                 Player.STATE_ENDED -> handlePlaybackEnded()
+                                Player.STATE_IDLE -> _uiState.value = PlaybackUiState.Idle
                             }
                         }
 
@@ -142,6 +164,7 @@ class PlaybackViewModel @Inject constructor(
         streamUrl: String,
         contentId: String,
         contentType: ContentType,
+        playFromBeggining: Boolean = false,
         season: Int? = null,
         episode: Int? = null
     ) {
@@ -159,17 +182,101 @@ class PlaybackViewModel @Inject constructor(
             val mediaItem = MediaItem.fromUri(streamUrl)
             player.setMediaItem(mediaItem)
             player.prepare()
+            if(!playFromBeggining){
+                currentContentItem?.let { player.seekTo((it.watchProgress * player.duration.toFloat()).toLong()) }
+            }
+            loadDefaultSelection()
             player.playWhenReady = true
             // Start position updates
             startProgressTracking()
-
+            loadTrackGroups()
             fetchContentRating(contentId, contentType)
 
             // Start controls hide timer
             startControlsHideTimer()
         }
+    }
 
-        startProgressTracking()
+    fun loadTrackGroups() {
+        viewModelScope.launch {
+            var subtitleOff = true
+            val trackGroups = mutableListOf<TrackGroup>()
+            val tracks = player.currentTracks
+            for (trackGroup in tracks.groups){
+                val trackType = trackGroup.type
+                val trackInGroupIsSelected = trackGroup.isSelected
+                val trackInGroupIsSupported = trackGroup.isSupported
+                if (trackGroup.isSelected && trackType == C.TRACK_TYPE_TEXT)
+                    subtitleOff = false
+                val originalTrackGroup = TrackGroup(
+                    trackType = trackType,
+                    isSelected = trackInGroupIsSelected,
+                    isSupported = trackInGroupIsSupported,
+                    isSubtitleOff = subtitleOff,
+                    originalTrackGroup = trackGroup
+                )
+                originalTrackGroup.tracks = List(trackGroup.length) { i ->
+                    Track(
+                        isSupported = trackGroup.isTrackSupported(i),
+                        isSelected = trackGroup.isTrackSelected(i),
+                        isSubtitleOff = subtitleOff,
+                        trackGroup = originalTrackGroup,
+                        trackFormat = trackGroup.getTrackFormat(i)
+                    )
+                }
+                trackGroups.add(originalTrackGroup)
+            }
+            _trackGroups.value = trackGroups
+        }
+    }
+
+    fun getAudioTracks(): List<Track> {
+        return _trackGroups.value.find { it.trackType == C.TRACK_TYPE_AUDIO }?.tracks ?: emptyList()
+    }
+
+    fun getSubtitleTracks(): List<Track> {
+        return _trackGroups.value.find { it.trackType == C.TRACK_TYPE_TEXT }?.tracks ?: emptyList()
+    }
+
+    fun selectTrack(trackIndex: Int?,) {
+        viewModelScope.launch {
+            withContext(dispatchers.main) {
+                if(trackIndex != null){
+                    player.trackSelectionParameters = player.trackSelectionParameters
+                        .buildUpon()
+                        .setOverrideForType(
+                            TrackSelectionOverride(_trackGroups.value.first().originalTrackGroup.mediaTrackGroup, trackIndex)
+                        )
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                        .build()
+                } else {
+                    // Deselect (e.g., turn off subtitles)
+                    player.trackSelectionParameters = player.trackSelectionParameters
+                        .buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true) // Clear override for that track type
+                        .build()
+                }
+                loadTrackGroups() // Refresh track groups to reflect new selection
+            }
+        }
+    }
+
+    fun loadDefaultSelection() {
+        viewModelScope.launch {
+            val prefs = preferencesDataSource.preferencesFlow.first()
+            withContext(dispatchers.main) {
+                player.trackSelectionParameters = player.trackSelectionParameters
+                    .buildUpon()
+                    .setPreferredAudioLanguage(prefs.preferredAudioLanguage)
+                    .setPreferredTextLanguage(prefs.preferredSubtitleLanguage)
+                    .setMaxVideoBitrate(Int.MAX_VALUE)
+                    .setPreferredAudioRoleFlags(0)
+                    .setPreferredTextRoleFlags(0)
+                    .setIgnoredTextSelectionFlags(if(prefs.forceSubtitles) 0 else C.SELECTION_FLAG_FORCED.inv())
+                    .setSelectUndeterminedTextLanguage(true)
+                    .build()
+            }
+        }
     }
 
     fun toggleControlsVisibility() {
@@ -186,7 +293,7 @@ class PlaybackViewModel @Inject constructor(
     private fun startControlsHideTimer() {
         controlsHideJob?.cancel()
         controlsHideJob = viewModelScope.launch {
-            delay(3000) // Hide after 3 seconds
+            delay(PlaybackConfig.CONTROLS_HIDE_MS.milliseconds) // Hide after 3 seconds
             _showControls.value = false
         }
     }
@@ -207,7 +314,7 @@ class PlaybackViewModel @Inject constructor(
         positionUpdateJob?.cancel()
         positionUpdateJob = viewModelScope.launch(dispatchers.main) {
             while (true) {
-                delay(1000)
+                delay(1000.milliseconds)
                 val position = player.currentPosition
                 val duration = player.duration
 
@@ -288,7 +395,7 @@ class PlaybackViewModel @Inject constructor(
         if (!traktOAuthManager.isAuthenticated()) return
 
         // Only scrobble every 5 minutes or at significant milestones
-        if (position - lastScrobblePosition < 300000 && progress < 0.8f) return
+        if (position - lastScrobblePosition < 15000 && progress < 0.8f) return
 
         currentContentId?.let { id ->
             try {
@@ -421,7 +528,7 @@ class PlaybackViewModel @Inject constructor(
     private fun startCountdown() {
         countdownJob?.cancel()
         countdownJob = viewModelScope.launch {
-            for (i in 10 downTo 0) {
+            for (i in 15 downTo 0) {
                 _countdownSeconds.value = i
                 delay(1000)
                 if (!_showUpNextModal.value) break

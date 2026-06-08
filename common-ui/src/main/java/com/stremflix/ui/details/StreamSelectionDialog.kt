@@ -15,16 +15,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.stremflix.data.model.Stream
+import com.stremflix.data.model.StreamQuality
 import com.stremflix.ui.R
-import com.stremflix.ui.components.QualityBadgeRow
-import com.stremflix.ui.theme.NetflixBlack
-import com.stremflix.ui.theme.NetflixRed
-import com.stremflix.ui.theme.NetflixTextPrimary
-import com.stremflix.ui.theme.NetflixTextSecondary
+import com.stremflix.ui.components.ExtraBadge
+import com.stremflix.ui.components.SourceBadge
+import com.stremflix.ui.theme.*
 
 @Composable
 fun StreamSelectionDialog(
@@ -113,37 +111,53 @@ private fun StreamItem(
                 color = if (isItemFocused) Color.White else Color.Transparent
             ),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Quality Badges (4K, HDR, etc.)
-        QualityBadgeRow(
-            has4K = stream.quality?.contains("4K", ignoreCase = true) == true || stream.quality?.contains(
-                "2160",
-                ignoreCase = true
-            ) == true,
-            has51 = stream.quality?.contains("5.1", ignoreCase = true) == true,
-            hasHDR = stream.quality?.contains("HDR", ignoreCase = true) == true || stream.quality?.contains(
-                "DV",
-                ignoreCase = true
-            ) == true,
-            modifier = Modifier.width(100.dp)
-        )
+
+        if(stream.description == "No Streams Found") {
+            Text(
+                text = "No streams found",
+                color = NetflixTextSecondary,
+                style = StremFlixTypography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+            return@Row
+        }
+
+        val streamQuality = when(stream.quality) {
+            StreamQuality.P_2160 -> "4K"
+            StreamQuality.P_1080 -> "FHD"
+            StreamQuality.P_720 -> "HD"
+            StreamQuality.P_480 -> "SD"
+            else -> stringResource(id = R.string.stream_default_quality)
+        }
 
         // Stream Name/Title
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stream.quality ?: stringResource(id = R.string.stream_default_quality),
-                color = NetflixTextPrimary,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row (
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ){
+                Text(text = streamQuality,
+                    color = NetflixTextPrimary,
+                    style = StremFlixTypography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f))
+                stream.source?.let { SourceBadge(streamSource = it) }
+                stream.extra?.let { extras -> if (extras.isNotEmpty()) ExtraBadge(streamExtra = extras) }
+            }
+
+            Spacer(Modifier.height(4.dp))
+
             Text(
                 text = stream.language ?: stringResource(id = R.string.stream_default_lang),
                 color = NetflixTextSecondary,
-                style = MaterialTheme.typography.bodySmall,
+                style = StremFlixTypography.bodySmall,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
             )
         }
 
@@ -151,7 +165,8 @@ private fun StreamItem(
         Icon(
             imageVector = ImageVector.vectorResource(R.drawable.ic_play),
             contentDescription = "Play",
-            tint = NetflixRed
+            tint = NetflixRed,
+            modifier = Modifier.size(24.dp)
         )
     }
 }

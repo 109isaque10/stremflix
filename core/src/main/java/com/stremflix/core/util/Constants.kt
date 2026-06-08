@@ -45,6 +45,7 @@ object PlaybackConfig {
     const val POPUP_THRESHOLD = 0.97f
     const val AUTO_PLAY_DELAY_MS = 5_000L
     const val PROGRESS_SYNC_INTERVAL_MS = 30_000L
+    const val CONTROLS_HIDE_MS = 4_000L
 }
 
 object UiConfig {

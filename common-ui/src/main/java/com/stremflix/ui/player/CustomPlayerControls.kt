@@ -1,7 +1,6 @@
 package com.stremflix.ui.player
 
 import androidx.annotation.OptIn
-import androidx.appcompat.view.ContextThemeWrapper
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -26,15 +25,14 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.ui.TrackSelectionDialogBuilder
 import androidx.navigation.NavHostController
 import com.stremflix.ui.R
 import com.stremflix.ui.theme.NetflixRed
 import com.stremflix.ui.theme.NetflixTextPrimary
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -54,16 +52,18 @@ fun CustomPlayerControls(
     modifier: Modifier = Modifier
 ) {
     var isVisible by remember { mutableStateOf(true) }
-    var currentPosition by remember { mutableStateOf(0L) }
-    var duration by remember { mutableStateOf(0L) }
     var showExtendedInfo by remember { mutableStateOf(false) }
+    var showTrackDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val themedContext = remember(context) { ContextThemeWrapper(context, 		androidx.appcompat.R.style.Theme_AppCompat_DayNight_Dialog_Alert) }
+//    val themedContext = remember(context) { ContextThemeWrapper(context, 		androidx.appcompat.R.style.Theme_AppCompat_DayNight_Dialog_Alert) }
+
+    val currentPosition = viewModel.currentPosition.collectAsState().value
+    val duration = viewModel.duration.collectAsState().value
 
     LaunchedEffect(uiState) {
         if (uiState !is PlaybackUiState.Playing) {
             // If paused, wait 10 seconds, then show the info
-            delay(10000L)
+            delay(10000L.milliseconds)
             showExtendedInfo = true
         } else {
             // If playing, instantly hide the info and reset the timer
@@ -71,39 +71,24 @@ fun CustomPlayerControls(
         }
     }
 
-    // Update progress/timer
-    LaunchedEffect(player) {
-        while (true) {
-            currentPosition = player.currentPosition
-            duration = player.duration
-            delay(500)
-        }
-    }
-
-    // Auto-hide controls
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(3000)
-            if (uiState is PlaybackUiState.Playing) isVisible = false
-        }
-    }
+    val showControls by viewModel.showControls.collectAsState()
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onTap = { isVisible = !isVisible }
+                    onTap = { viewModel.toggleControlsVisibility() }
                 )
             }
     ) {
         AnimatedVisibility(
-            visible = isVisible,
+            visible = showControls,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = modifier.fillMaxSize()
             .pointerInput(Unit) {
-                detectTapGestures { isVisible = !isVisible }
+                detectTapGestures { viewModel.toggleControlsVisibility() }
             }
         ) {
             Box(modifier = Modifier.fillMaxSize().drawWithContent {
@@ -261,27 +246,43 @@ fun CustomPlayerControls(
                                 Spacer(Modifier.width(32.dp))
                             }
 
-                            // ✅ 3. Native ExoPlayer Audio Track Selector
-                            TextButton(onClick = {
-                                TrackSelectionDialogBuilder(themedContext, "Audio", player, C.TRACK_TYPE_AUDIO).build().show()
-                            }) {
+                            TextButton(onClick = { showTrackDialog = true } ){
                                 Icon(ImageVector.vectorResource(R.drawable.ic_subtitles), null, tint = Color.White)
                                 Spacer(Modifier.width(8.dp))
-                                Text("Audio", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Audio/Subs", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                             }
 
-                            Spacer(Modifier.width(16.dp))
+                            // ✅ 3. Native ExoPlayer Audio Track Selector
+//                            TextButton(onClick = {
+//                                TrackSelectionDialogBuilder(themedContext, "Audio", player, C.TRACK_TYPE_AUDIO).build().show()
+//                            }) {
+//                                Icon(ImageVector.vectorResource(R.drawable.ic_subtitles), null, tint = Color.White)
+//                                Spacer(Modifier.width(8.dp))
+//                                Text("Audio", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+//                            }
+//
+//                            Spacer(Modifier.width(16.dp))
+//
+//                            // ✅ 4. Native ExoPlayer Subtitle Track Selector
+//                            TextButton(onClick = {
+//                                val dialogBuilder = TrackSelectionDialogBuilder(themedContext, "Subtitles", player, C.TRACK_TYPE_TEXT)
+//                                dialogBuilder.setTrackNameProvider { format ->
+//                                    val language = format.language ?: format.label ?: "Unknown"
+//                                    val tag = when {
+//                                        format.selectionFlags and C.SELECTION_FLAG_FORCED != 0 -> "Forced"
+//                                        format.roleFlags and C.ROLE_FLAG_DESCRIBES_VIDEO != 0 -> "AD"
+//                                        else -> ""
+//                                    }
+//                                    if (tag.isNotEmpty()) "$language - $tag" else language
+//                                }
+//                                dialogBuilder.build().show()
+//                            }) {
+//                                Icon(ImageVector.vectorResource(R.drawable.ic_list), null, tint = Color.White)
+//                                Spacer(Modifier.width(8.dp))
+//                                Text("Subtitles", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+//                            }
 
-                            // ✅ 4. Native ExoPlayer Subtitle Track Selector
-                            TextButton(onClick = {
-                                TrackSelectionDialogBuilder(themedContext, "Subtitles", player, C.TRACK_TYPE_TEXT).build().show()
-                            }) {
-                                Icon(ImageVector.vectorResource(R.drawable.ic_list), null, tint = Color.White)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Subtitles", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                            }
-
-                            if (season != null) {
+                            if (season != null && episode != null) {
                                 Spacer(Modifier.width(32.dp))
                                 TextButton(onClick = viewModel::playNext) {
                                     Icon(ImageVector.vectorResource(R.drawable.ic_skip_next), null, tint = Color.White)
@@ -339,6 +340,13 @@ fun CustomPlayerControls(
                             )
                         }
                     }
+                }
+
+                if (showTrackDialog) {
+                    if(!isTvMode)
+                        AudioSubtitleSelectorMobile(viewModel.getAudioTracks(), viewModel.getSubtitleTracks(), viewModel::selectTrack)
+                    else
+                        AudioSubtitleSelectorTvDrawer(viewModel.getAudioTracks(), viewModel.getSubtitleTracks(), viewModel::selectTrack)
                 }
             }
         }

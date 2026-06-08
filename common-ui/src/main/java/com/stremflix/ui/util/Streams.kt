@@ -14,14 +14,15 @@ import kotlinx.coroutines.flow.first
 
 suspend fun handlePlayLogic(
     item: ContentItem,
-    specificEpisode: Episode? = null,
+    specificEpisode: Episode?,
+    playFromBeggining: Boolean,
     contentRepository: ContentRepository,
     streamRepository: StreamRepository,
     watchHistoryRepository: WatchHistoryRepository,
     preferencesDataSource: PreferencesDataSource,
     streamsFlow: MutableStateFlow<List<Stream>>,
     showDialogFlow: MutableStateFlow<Boolean>,
-    onEpisodeDetermined: (Episode) -> Unit = {}
+    onEpisodeDetermined: (Episode?) -> Unit = {}
 ) {
     showDialogFlow.value = true
     streamsFlow.value = emptyList()
@@ -30,11 +31,10 @@ suspend fun handlePlayLogic(
         fetchStreams(item, null, streamRepository, preferencesDataSource, streamsFlow, showDialogFlow)
     } else {
         // Use provided episode or determine the "Up Next" episode
-        val episodeToPlay = specificEpisode ?: determineUpNext(item, watchHistoryRepository, contentRepository)
+        val episodeToPlay = specificEpisode
 
-        episodeToPlay?.let { ep ->
-            onEpisodeDetermined(ep)
-            if (ep.watchProgress > 0f) {
+        episodeToPlay.let { ep ->
+            if (ep != null && ep.watchProgress > 0f) {
                 watchHistoryRepository.updateWatchProgress(item.id, ep.seasonNumber, ep.episodeNumber, ep.watchProgress)
             }
             fetchStreams(item, ep, streamRepository, preferencesDataSource, streamsFlow, showDialogFlow)
@@ -42,14 +42,14 @@ suspend fun handlePlayLogic(
 //            showDialogFlow.value = false // Close if no episode exists
             streamsFlow.value = listOf(
                 Stream(
-                    "No Episode Found", "", "", "", null
+                    "No Episode Found", "", null, "", null, null, null
                 )
             )
         }
     }
 }
 
-private suspend fun determineUpNext(
+suspend fun determineUpNext(
     item: ContentItem,
     historyRepo: WatchHistoryRepository,
     contentRepo: ContentRepository
@@ -95,7 +95,7 @@ private suspend fun fetchStreams(
 //        showDialogFlow.value = false
         streamsFlow.value = listOf(
             Stream(
-                "No Streams Found\nID: ${item.id} S${episode?.seasonNumber}E${episode?.episodeNumber}", "", "", "", null
+                "No Streams Found\nID: ${item.id} S${episode?.seasonNumber}E${episode?.episodeNumber}", "", null, "", null, null, null
             )
         )
     }

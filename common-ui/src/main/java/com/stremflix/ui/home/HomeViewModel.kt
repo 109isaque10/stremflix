@@ -74,9 +74,9 @@ class HomeViewModel @Inject constructor(
     var currentSelectedItem: ContentItem? = null
         private set
 
-//    init {
-//        loadHomeContent()
-//    }
+    init {
+        loadHomeContent()
+    }
 
     fun onPlayClicked(episode: Episode?, item: ContentItem? = currentSelectedItem) {
         viewModelScope.launch(dispatchers.io) {
@@ -89,6 +89,7 @@ class HomeViewModel @Inject constructor(
                 watchHistoryRepository = watchHistoryRepository,
                 preferencesDataSource = preferencesDataSource,
                 streamsFlow = _streams,
+                playFromBeggining = false,
                 showDialogFlow = _showStreamDialog
             )
         }
@@ -134,7 +135,6 @@ class HomeViewModel @Inject constructor(
                 "On your list" to suspend { loadMyList() },
                 context.getString(R.string.row_trending_now) to suspend { if (isTraktEnabled) loadTraktTrending() else loadTmdbTrendingToday() },
                 context.getString(R.string.row_most_watched_week) to suspend { if (isTraktEnabled) loadTraktMostWatchedWeekly() else loadTmdbTrendingWeek() }
-
             )
 
             val results = contentRepository.loadInParallel(rowDefinitions, concurrencyLimit = 8) { (title, loader) ->

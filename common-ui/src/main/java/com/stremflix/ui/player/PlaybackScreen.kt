@@ -34,6 +34,7 @@ fun PlaybackScreen(
     contentSynopsis: String?,
     contentId: String,
     contentType: String,
+    playFromBeggining: Boolean,
     isTvMode: Boolean,
     season: Int? = null,
     episode: Int? = null,
@@ -102,6 +103,7 @@ fun PlaybackScreen(
             streamUrl = streamUrl,
             contentId = contentId,
             contentType = if (contentType == "movie") ContentType.MOVIE else ContentType.SERIES,
+            playFromBeggining = playFromBeggining,
             season = season,
             episode = episode
         )
@@ -152,7 +154,7 @@ fun PlaybackScreen(
             modifier = Modifier.align(Alignment.TopStart)
         )
 
-        if (showUpNext) {
+        if (showUpNext && upNextInfo != null) {
             UpNextModal(
                 info = upNextInfo,
                 countdownSeconds = countdown,

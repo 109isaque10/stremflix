@@ -66,6 +66,8 @@ fun TmdbContentDto.toDomainItem(): ContentItem? {
 fun TmdbDetailsDto.toDomainItem(type: ContentType, region: String = "US"): ContentItem {
     val posterUrl = posterPath?.let { "${ApiEndpoints.TMDB_IMAGE_BASE}w500$it" }
     val backdropUrl = backdropPath?.let { "${ApiEndpoints.TMDB_IMAGE_BASE}original$it" }
+    val titleLogoUrl = images?.logos?.firstOrNull()?.filePath?.let { "${ApiEndpoints.TMDB_IMAGE_BASE}w500$it" }
+
     val releaseDate = effectiveDate.takeIf { it.isNotEmpty() }?.let {
         try { LocalDate.parse(it) } catch (e: Exception) { null }
     }
@@ -78,6 +80,13 @@ fun TmdbDetailsDto.toDomainItem(type: ContentType, region: String = "US"): Conte
         ContentType.SERIES -> extractTvCertification(region)
     }
 
+    val trailerId = videos?.results?.firstOrNull {
+        it.type.equals("Trailer", ignoreCase = true) && it.site.equals(
+            "YouTube",
+            ignoreCase = true
+        )
+    }?.key
+
     return ContentItem(
         id = id.toString(),
         type = type,
@@ -86,12 +95,15 @@ fun TmdbDetailsDto.toDomainItem(type: ContentType, region: String = "US"): Conte
         popularity = popularity,
         posterUrl = posterUrl,
         backdropUrl = backdropUrl,
+        titleLogoUrl = titleLogoUrl,
         rating = voteAverage,
         contentRating = contentRating,
         synopsis = overview,
         genres = genreList,
         cast = castList,
         runtime = runtime,
+        videos = videos?.results,
+        trailerId = trailerId,
         matchScore = matchScore,
         releaseDate = releaseDate,
         externalIds = ExternalIds(

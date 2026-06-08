@@ -73,7 +73,6 @@ fun StremFlixApp(
                     if (isTvMode && !isPlayerScreen && !isSplash && !isSettings) {
                         TvSideNav(
                             navItems = navItems,
-                            currentRoute = currentRoute,
                             onNavigate = { route ->
                                 navController.navigate(route) {
                                     popUpTo(navController.graph.startDestinationId) { saveState = true }

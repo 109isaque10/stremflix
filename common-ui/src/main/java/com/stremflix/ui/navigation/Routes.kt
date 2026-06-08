@@ -41,6 +41,12 @@ sealed class AppRoute {
     data object Settings : AppRoute()
 
     @Serializable
+    data class Episodes(
+        val contentId: String,
+        val season: Int? = null
+    ) : AppRoute()
+
+    @Serializable
     data class OAuthCallback(val code: String) : AppRoute()
 
     @Serializable
@@ -50,6 +56,7 @@ sealed class AppRoute {
         val contentSynopsis: String?,
         val contentId: String,
         val type: String,
+        val playFromBeggining: Boolean = false,
         val season: Int? = null,
         val episode: Int? = null
     ) : AppRoute()

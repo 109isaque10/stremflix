@@ -15,6 +15,7 @@ import com.stremflix.data.repository.ContentRepository
 import com.stremflix.data.repository.StreamRepository
 import com.stremflix.data.repository.WatchHistoryRepository
 import com.stremflix.ui.navigation.AppRoute
+import com.stremflix.ui.util.determineUpNext
 import com.stremflix.ui.util.handlePlayLogic
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,6 +66,12 @@ class DetailsViewModel @Inject constructor(
     private val _episodes = MutableStateFlow<List<Episode>>(emptyList())
     var episodes: StateFlow<List<Episode>> = _episodes.asStateFlow()
 
+    private val _selectedEpisode = MutableStateFlow<Episode?>(null)
+    var selectedEpisode: StateFlow<Episode?> = _selectedEpisode.asStateFlow()
+
+    private val _playFromBeggining = MutableStateFlow(false)
+    var playFromBeggining: StateFlow<Boolean> = _playFromBeggining.asStateFlow()
+
     init {
         loadDetails()
     }
@@ -87,6 +94,7 @@ class DetailsViewModel @Inject constructor(
                         _seasons.value = (1..10).toList() // Fallback
                     }
 
+                    _selectedEpisode.value = determineUpNext(result.data, watchHistoryRepository, contentRepository)
                     // Load episodes for season 1 initially
                     loadEpisodesForSeason(result.data.id, 1)
                 }
@@ -104,6 +112,7 @@ class DetailsViewModel @Inject constructor(
             handlePlayLogic(
                 item = item,
                 specificEpisode = episode,
+                playFromBeggining = playFromBeggining.value,
                 contentRepository = contentRepository,
                 streamRepository = streamRepository,
                 watchHistoryRepository = watchHistoryRepository,

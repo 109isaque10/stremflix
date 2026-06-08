@@ -65,6 +65,8 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
 
+    implementation(libs.yt.player)
+
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

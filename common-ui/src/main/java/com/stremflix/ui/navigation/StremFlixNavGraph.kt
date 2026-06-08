@@ -18,6 +18,7 @@ import com.stremflix.ui.auth.TraktAuthScreen
 import com.stremflix.ui.browse.CategoryBrowseScreen
 import com.stremflix.ui.browse.CategoryBrowseViewModel
 import com.stremflix.ui.details.DetailsScreen
+import com.stremflix.ui.details.EpisodesScreenRoute
 import com.stremflix.ui.home.HomeScreen
 import com.stremflix.ui.home.HomeViewModel
 import com.stremflix.ui.player.PlaybackScreen
@@ -168,7 +169,7 @@ fun StremFlixNavGraph(
                 contentId = detailsRoute.id,
                 contentType = detailsRoute.type,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToPlayback = { streamUrl, contentTitle, contentSynopsis, contentId, type ->
+                onNavigateToPlayback = { streamUrl, contentTitle, contentSynopsis, contentId, type, playFromBeggining ->
                     // Navigate to PlaybackRoute
                     navController.navigate(
                         AppRoute.PlaybackRoute(
@@ -177,14 +178,32 @@ fun StremFlixNavGraph(
                             contentSynopsis = contentSynopsis,
                             contentId = contentId,
                             type = if (type == ContentType.MOVIE) "movie" else "series",
+                            playFromBeggining = playFromBeggining
                         )
                     )
+                },
+                onEpisodes = { contentId, season ->
+                    navController.navigate(AppRoute.Episodes(contentId, season))
                 },
                 scaffoldPadding = scaffoldPadding,
                 isTvMode = isTvMode
             )
         }
 
+        composable<AppRoute.Episodes> { backStackEntry ->
+            val route = backStackEntry.toRoute<AppRoute.Episodes>()
+            // route.contentId and route.season are available via saved state inside EpisodesViewModel
+            EpisodesScreenRoute(
+                onBack = { navController.popBackStack() },
+                onEpisodeSelected = { episode ->
+                    // map selected episode to play back and navigate; use episode.streamUrl or call details VM to get stream
+                    // Assuming episode has a streamUrl or you need to call your play logic — here's an example route:
+                    // build stream playback route via handlePlayLogic in DetailsViewModel or call nav to PlaybackRoute if you already have stream URL.
+                    // For now just pop back:
+                    navController.navigate(AppRoute.PlaybackRoute(episode.streamUrl!!, episode.title, episode.synopsis, episode.seriesId, "series", false, episode.seasonNumber, episode.episodeNumber))
+                }
+            )
+        }
         composable<AppRoute.Settings> {
             SettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
@@ -205,6 +224,7 @@ fun StremFlixNavGraph(
                 contentType = route.type,
                 season = route.season,
                 episode = route.episode,
+                playFromBeggining = route.playFromBeggining,
                 isTvMode = isTvMode,
                 navController = navController
             )

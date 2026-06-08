@@ -28,7 +28,6 @@ import com.stremflix.ui.components.GenreCard
 import com.stremflix.ui.components.LoadingSkeleton
 import com.stremflix.ui.details.StreamSelectionDialog
 import com.stremflix.ui.movies.MoviesViewModel
-import com.stremflix.ui.mylist.MyListViewModel
 import com.stremflix.ui.series.SeriesViewModel
 import com.stremflix.ui.theme.NetflixBlack
 import com.stremflix.ui.theme.NetflixRed
@@ -45,7 +44,6 @@ fun HomeScreen(
     homeViewModel: HomeViewModel = hiltViewModel(),
     moviesViewModel: MoviesViewModel = hiltViewModel(),
     seriesViewModel: SeriesViewModel = hiltViewModel(),
-    myListViewModel: MyListViewModel = hiltViewModel(),
     onNavigateToSettings: () -> Unit
 ) {
     val homeState by homeViewModel.uiState.collectAsState()
@@ -210,7 +208,7 @@ fun HomeScreen(
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                             // Hero section
-                            val firstRow = rows.firstOrNull()
+                            val firstRow = rows.getOrNull(4)
                             if (firstRow != null && firstRow.items.isNotEmpty() && filterType == "home") {
                                 item {
                                     HeroCard(
@@ -224,6 +222,7 @@ fun HomeScreen(
                                                 firstRow.items.first().type.name.lowercase()
                                             )
                                         },
+                                        isTv = isTvMode,
                                         modifier = Modifier.fillParentMaxWidth()
                                     )
                                     Spacer(Modifier.height(24.dp))

@@ -34,6 +34,8 @@
     <string name="detail_remove_from_list">Remove from List</string>
     <string name="detail_more_info">More Info</string>
     <string name="detail_seasons">Seasons</string>
+    <string name="detail_resume">Resume</string>
+    <string name="detail_play_episode">Play S%1$sE%2$s</string>
     <string name="detail_episodes">Episodes</string>
     <string name="detail_synopsis">Synopsis</string>
     <string name="detail_cast">Cast</string>

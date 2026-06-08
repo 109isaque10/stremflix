@@ -111,8 +111,8 @@ class TmdbApi @Inject constructor(
         return try {
             httpClient.get("${ApiEndpoints.TMDB_BASE}movie/$movieId") {
                 parameter("api_key", apiKey)
-                parameter("append_to_response", "credits,videos,external_ids,release_dates,runtime")
-                parameter("language", lang)
+                parameter("append_to_response", "credits,videos,external_ids,release_dates,runtime,images")
+                parameter("language", "$lang,en-US")
             }.body()
         } catch (e: Exception) {
             TmdbDetailsDto(
@@ -168,8 +168,8 @@ class TmdbApi @Inject constructor(
         return try {
             httpClient.get("${ApiEndpoints.TMDB_BASE}tv/$tvId") {
                 parameter("api_key", apiKey)
-                parameter("append_to_response", "credits,videos,external_ids,content_ratings,runtime,number_of_seasons")
-                parameter("language", lang)
+                parameter("append_to_response", "credits,videos,images,external_ids,content_ratings,runtime,number_of_seasons")
+                parameter("language", "$lang,en-US")
             }.body()
         } catch (e: Exception) {
             TmdbDetailsDto(

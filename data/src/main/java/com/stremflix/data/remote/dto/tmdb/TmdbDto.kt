@@ -50,6 +50,7 @@ data class TmdbDetailsDto(
     val credits: CreditsDto? = null,
     @SerialName("external_ids") val externalIds: ExternalIdsDto? = null,
     val videos: VideosResponseDto? = null,
+    val images: ImagesResponseDto? = null,
 
     @SerialName("release_dates") val releaseDates: ReleaseDatesResponse? = null,  // ADD THIS
     @SerialName("content_ratings") val contentRatings: ContentRatingsResponse? = null,  // ADD THIS
@@ -123,4 +124,23 @@ data class VideoDto(
     val name: String?,
     val type: String, // Trailer, Teaser, etc.
     val site: String // YouTube
+)
+
+@Serializable
+data class ImagesResponseDto(
+    val backdrops: List<ImageDto>,
+    val logos: List<ImageDto>,
+    val posters: List<ImageDto>
+)
+
+@Serializable
+data class ImageDto(
+    @SerialName("aspect_ratio") val aspectRatio: Float?,
+    val height: Int?,
+    @SerialName("iso_639_1") val lang: String?,
+    @SerialName("iso_3166_1") val country: String?,
+    @SerialName("file_path") val filePath: String?,
+    @SerialName("vote_average") val voteAverage: Float?,
+    @SerialName("vote_count") val voteCount: Int?,
+    val width: Int?
 )

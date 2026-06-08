@@ -4,8 +4,7 @@ import com.stremflix.core.domain.model.ApiError
 import com.stremflix.core.domain.model.IdType
 import com.stremflix.core.domain.model.Result
 import com.stremflix.data.local.PreferencesDataSource
-import com.stremflix.data.model.ExternalIds
-import com.stremflix.data.model.Stream
+import com.stremflix.data.model.*
 import com.stremflix.data.remote.StremioApi
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -44,6 +43,8 @@ class StreamRepository @Inject constructor(
                         url = it,
                         quality = extractQuality(combinedText),
                         language = extractLanguage(combinedText), // Default
+                        source = extractSource(combinedText),
+                        extra = extractExtra(combinedText),
                         behaviorHints = dto.behaviorHints?.let { bh ->
                             com.stremflix.data.model.BehaviorHints(
                                 bh.bingeGroup,
@@ -115,14 +116,65 @@ class StreamRepository @Inject constructor(
         }
     }
 
-    private fun extractQuality(text: String): String {
+    private fun extractQuality(text: String): StreamQuality {
         return when {
-            text.contains("2160p") || text.contains("4k") || text.contains("uhd") -> "4K"
-            text.contains("1080p") || text.contains("fhd") -> "FHD"
-            text.contains("720p") || text.contains("hd") -> "HD"
-            text.contains("480p") || text.contains("sd") -> "SD"
-            else -> "Unknown"
+            text.contains("2160p") || text.contains("4k") || text.contains("uhd") -> StreamQuality.P_2160
+            text.contains("1080p") || text.contains("fhd") -> StreamQuality.P_1080
+            text.contains("720p") || text.contains("hd") -> StreamQuality.P_720
+            text.contains("480p") || text.contains("sd") -> StreamQuality.P_480
+            else -> StreamQuality.UNKNOWN
         }
+    }
+
+    private fun extractSource(text: String): StreamSource {
+        // Source tags are often in the name or filename hints. We check for common indicators in order of quality.
+        val masterKeywords = arrayOf("remux", "bdmv")
+        val highKeywords = arrayOf("blu-ray", "bd-rip", "br-rip", "bluray", "brrip", "bdrip", "hddvd")
+        val mediumKeywords = arrayOf("dvdrip", "dvd-rip", "webrip", "web-rip", "dvd", "web", "web-dl", "webdl", "nf", "amzn")
+        val lowKeywords = arrayOf("screener", "scr", "tvrip", "tv-rip", "hdtv", "pdtv")
+        val worstKeywords = arrayOf("cam", "telecine", "tc", "hdcam", "hd-ts", "hdtc", "hdcamrip", "hdts", "camrip", "cam-rip", "telesync", "ts", "workprint", "wp")
+
+        return when {
+            masterKeywords.any { text.contains(it) } -> StreamSource.MASTER_QUALITY
+            highKeywords.any { text.contains(it) } -> StreamSource.HIGH_QUALITY
+            mediumKeywords.any { text.contains(it) } -> StreamSource.MEDIUM_QUALITY
+            lowKeywords.any { text.contains(it) } -> StreamSource.LOW_QUALITY
+            worstKeywords.any { text.contains(it) } -> StreamSource.WORST_QUALITY
+            else -> StreamSource.UNKNOWN
+        }
+    }
+
+    private fun extractExtra(text: String): Set<StreamExtra> {
+        val streamExtra = mutableSetOf<StreamExtra>()
+        if (text.contains("4k") || text.contains("uhd") || text.contains("2160p")) streamExtra.add(
+            StreamExtra.FOUR_K
+        )
+        if (text.contains("5.1") || text.contains("5_1") || text.contains("5-1")) streamExtra.add(StreamExtra.FIVE_POINT_ONE)
+        if (text.contains("7.1") || text.contains("7_1") || text.contains("7-1")) streamExtra.add(StreamExtra.SEVEN_POINT_ONE)
+        if (arrayOf("hdr", "hdr10", "hdr10+", "dolby vision", "dv", "hdr10plus").any { text.contains(it) }) streamExtra.add(StreamExtra.HDR)
+        if (text.contains("dolby vision") || text.contains("dv")) streamExtra.add(StreamExtra.DOLBY_VISION) // DV implies HDR
+        when {
+            arrayOf("dolby digital plus", "dd+", "dd plus", "ddp", "e-ac3").any {text.contains(it)} -> streamExtra.add(StreamExtra.DOLBY_DIGITAL_PLUS)
+            arrayOf("dolby digital", "dd", "ac3").any {text.contains(it)} -> streamExtra.add(StreamExtra.DOLBY_DIGITAL)
+        }
+        when {
+            text.contains("atmos") && text.contains("dolby vision") -> streamExtra.add(StreamExtra.ATMOS_VISION)
+            text.contains("atmos") -> streamExtra.add(StreamExtra.ATMOS)
+        }
+        when {
+            text.contains("imax") && text.contains("enhanced") -> streamExtra.add(StreamExtra.IMAX_ENHANCED)
+            text.contains("imax") -> streamExtra.add(StreamExtra.IMAX)
+        }
+        when {
+            text.contains("hdr10+") -> streamExtra.add(StreamExtra.HDR10_PLUS)
+            text.contains("hdr10") -> streamExtra.add(StreamExtra.HDR10)
+        }
+        if (text.contains("truehd")) streamExtra.add(StreamExtra.TRUE_HD)
+        when {
+            text.contains("dts-x") || text.contains("dtsx") -> streamExtra.add(StreamExtra.DTS_X)
+            text.contains("dts") -> streamExtra.add(StreamExtra.DTS)
+        }
+        return streamExtra
     }
 
     private fun extractLanguage(text: String): String {
