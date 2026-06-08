@@ -9,8 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -20,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.Glow
 import androidx.tv.material3.Surface
 import com.stremflix.core.domain.model.IdType
 import com.stremflix.ui.R
@@ -802,6 +806,9 @@ private fun TvToggleSetting(
             containerColor = Color.Transparent,
             focusedContainerColor = Color(0xFF222222)
         ),
+        // FIX: Remove the pop-up zoom and shadows here too
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
+        glow = ClickableSurfaceDefaults.glow(focusedGlow = Glow.None),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -814,7 +821,6 @@ private fun TvToggleSetting(
                 Text(text = title, color = NetflixTextPrimary, style = MaterialTheme.typography.bodyLarge)
                 Text(text = description, style = MaterialTheme.typography.bodySmall, color = NetflixTextSecondary)
             }
-            // Standard M3 Switch inside focusable row works perfectly here
             Switch(
                 checked = checked,
                 onCheckedChange = null,
@@ -847,6 +853,8 @@ private fun TvSettingsTextField(
             containerColor = Color(0xFF141414),
             focusedContainerColor = Color(0xFF222222)
         ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
+        glow = ClickableSurfaceDefaults.glow(focusedGlow = Glow.None),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(4.dp)),
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
     ) {
@@ -863,6 +871,8 @@ private fun TvSettingsTextField(
 
     // Opens explicit dialog with focus on text field to bring up system TV keyboard IME automatically
     if (showInputDialog) {
+        val saveButtonFocusRequester = remember { FocusRequester() }
+
         Dialog(onDismissRequest = { showInputDialog = false }) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = NetflixSurfaceLight),
@@ -877,18 +887,35 @@ private fun TvSettingsTextField(
                     OutlinedTextField(
                         value = localInputValue,
                         onValueChange = { localInputValue = it },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onPreviewKeyEvent { keyEvent ->
+                                if (keyEvent.type == KeyEventType.KeyDown &&
+                                    (keyEvent.key == Key.DirectionDown || keyEvent.key == Key.NavigateNext)
+                                ) {
+                                    saveButtonFocusRequester.requestFocus()
+                                    true // Consumes the event so the cursor doesn't just sit there
+                                } else {
+                                    false
+                                }
+                            },
                         singleLine = true,
                         visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
                         colors = OutlinedTextFieldDefaults.colors(
+                            // FIX: Clean up focus visual glitches by stripping text box container overrides
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
                             focusedBorderColor = NetflixRed,
+                            unfocusedBorderColor = Color(0xFF333333),
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White
                         )
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                        TextButton(onClick = { showInputDialog = false }) { Text("Cancel", color = Color.Gray) }
+                        TextButton(onClick = { showInputDialog = false }) {
+                            Text("Cancel", color = Color.Gray)
+                        }
                         Spacer(modifier = Modifier.width(16.dp))
                         Button(
                             onClick = {
@@ -896,8 +923,12 @@ private fun TvSettingsTextField(
                                 onSave(localInputValue)
                                 showInputDialog = false
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = NetflixRed)
-                        ) { Text("Save", color = Color.White) }
+                            colors = ButtonDefaults.buttonColors(containerColor = NetflixRed),
+                            // Attach the requester to the Save button action item box directly
+                            modifier = Modifier.focusRequester(saveButtonFocusRequester)
+                        ) {
+                            Text("Save", color = Color.White)
+                        }
                     }
                 }
             }
@@ -921,6 +952,8 @@ private fun TvDropdownSetting(
             containerColor = Color.Transparent,
             focusedContainerColor = Color(0xFF222222)
         ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
+        glow = ClickableSurfaceDefaults.glow(focusedGlow = Glow.None),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
         modifier = Modifier.fillMaxWidth()
     ) {

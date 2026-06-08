@@ -125,7 +125,6 @@
 //}
 package com.stremflix.ui.navigation
 
-// FIX: Import the proper TV Material 3 elements
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -220,7 +219,6 @@ private fun TvNavItem(
 ) {
     var isItemFocused by remember { mutableStateOf(false) }
 
-    // FIX: Keep it white if it's the screen we are looking at OR if we are actively hovering over it
     val contentColor = when {
         isItemFocused -> Color.White
         isSelected -> Color.White
@@ -230,7 +228,6 @@ private fun TvNavItem(
     Surface(
         onClick = onClick,
         colors = ClickableSurfaceDefaults.colors(
-            // FIX: Keep a subtle background tint for the selected item even when focus leaves the sidebar
             containerColor = when {
                 isSelected && isNavExpanded -> Color.White.copy(alpha = 0.1f)
                 isSelected -> Color.White.copy(alpha = 0.05f) // Dimmer indicator when focus is on the main content
@@ -267,7 +264,6 @@ private fun TvNavItem(
                         text = stringResource(id = item.labelResId),
                         color = contentColor,
                         fontSize = 16.sp,
-                        // FIX: Ensure the typography weights update dynamically too
                         fontWeight = if (isSelected || isItemFocused) FontWeight.Bold else FontWeight.Medium,
                         maxLines = 1
                     )
