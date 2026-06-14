@@ -238,6 +238,7 @@ fun HomeScreen(
                                     title = rowData.title,
                                     items = rowData.items,
                                     isLarge = rowData.isLarge,
+                                    isTvMode = isTvMode,
                                     onItemSelected = { item ->
                                         onNavigateToDetails(item.title, item.synopsis, item.id, item.type.name.lowercase())
                                     }

@@ -130,6 +130,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -175,6 +176,7 @@ fun TvSideNav(
         modifier = modifier
             .fillMaxHeight()
             .width(navWidth)
+            .focusGroup()
             .background(
                 Brush.horizontalGradient(
                     colors = listOf(

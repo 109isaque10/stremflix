@@ -2,6 +2,7 @@
 
 package com.stremflix.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,18 +35,30 @@ fun ContentCard(
     contentDescription: String,
     aspectRatio: Float = 2f / 3f,
     progress: Float? = null,
+    isTvMode: Boolean = false,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
-    val scale by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (isFocused) 1.05f else 1f,
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused && isTvMode) 1.08f else 1f,
         label = "card_scale"
     )
 
+    val sizeModifier = if (isTvMode) {
+        Modifier
+            .width(if (aspectRatio > 1f) 240.dp else 150.dp)
+            .height(if (aspectRatio > 1f) 135.dp else 225.dp)
+    } else {
+        Modifier
+            .width(110.dp) // Original clean mobile sizing constraint
+            .aspectRatio(aspectRatio)
+    }
+
     Box(
         modifier = modifier
+            .then(sizeModifier)
             .scale(scale)
             .border(
                 width = if (isFocused) 2.dp else 0.dp,
@@ -61,7 +74,6 @@ fun ContentCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .aspectRatio(aspectRatio)
                 .clip(RoundedCornerShape(6.dp))
         ) {
             if (!imageUrl.isNullOrEmpty()) {
