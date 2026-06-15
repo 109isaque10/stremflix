@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -118,19 +119,21 @@ fun EpisodesScreen(
                 // Category selector (vertical list)
                 LazyColumn(modifier = Modifier.weight(1f)) {
                     items(seasons) { season ->
-                        val isSelected = season == currentSeason
+//                        val isSelected = season == currentSeason
+                        var isFocused = season == currentSeason // For simplicity, using currentSeason as focused state. You can manage focus separately if needed.
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp)
-                                .then(if (isSelected) Modifier.border(3.dp, Color.White, RoundedCornerShape(6.dp)) else Modifier)
+                                .then(if (isFocused) Modifier.border(3.dp, Color.White, RoundedCornerShape(0.dp)) else Modifier)
                                 .clickable { onSeasonSelected(season) }
                                 .focusable(true)
+                                .onFocusChanged { focusState -> isFocused = focusState.isFocused }
                                 .padding(12.dp)
                         ) {
                             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = "Season $season", color = if (isSelected) Color.White else NetflixTextSecondary, modifier = Modifier.weight(1f))
-                                Text(text = item.numberOfSeasons.toString(), color = if (isSelected) Color.White else NetflixTextSecondary)
+                                Text(text = "Season $season", color = if (isFocused) Color.White else NetflixTextSecondary, modifier = Modifier.weight(1f))
+//                                Text(text = modules.num.toString(), color = if (isSelected) Color.White else NetflixTextSecondary)
                             }
                         }
                     }
@@ -153,11 +156,14 @@ fun EpisodesScreen(
 
 @Composable
 private fun EpisodeRow(episode: Episode, index: Int, onClick: () -> Unit) {
+    var isFocused = false
     Row(modifier = Modifier
         .fillMaxWidth()
         .height(120.dp)
         .clickable { onClick() }
-        .background(Color(0x11000000), RoundedCornerShape(6.dp))
+        .background(Color(0x11000000), RoundedCornerShape(0.dp))
+        .onFocusChanged { focusState -> isFocused = focusState.isFocused }
+        .then(if (isFocused) Modifier.border(3.dp, Color.White, RoundedCornerShape(0.dp)) else Modifier)
         .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

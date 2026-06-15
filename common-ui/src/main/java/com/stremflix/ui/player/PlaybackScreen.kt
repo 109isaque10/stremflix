@@ -3,14 +3,21 @@ package com.stremflix.ui.player
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.os.Build
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.viewinterop.AndroidView
@@ -54,6 +61,7 @@ fun PlaybackScreen(
     val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
+    val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
@@ -112,9 +120,32 @@ fun PlaybackScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(NetflixBlack),
-        contentAlignment = Alignment.Center
+            .background(NetflixBlack)
+            .focusRequester(focusRequester)
+            .focusable() // ✅ Enables focus state targeting for this interaction cell
+            .onKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    when (keyEvent.nativeKeyEvent.keyCode) {
+                        KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                            viewModel.onPlayPause() // Toggle play/pause on center/enter key
+                            true
+                        }
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            viewModel.skipForward(10000) // Seek forward 10s
+                            true
+                        }
+                        KeyEvent.KEYCODE_DPAD_LEFT -> {
+                            viewModel.skipBackward(10000) // Seek backward 10s
+                            true
+                        }
+                        else -> false
+                    }
+                } else false
+            }
     ) {
+        LaunchedEffect(Unit) {
+            focusRequester.requestFocus()
+        }
         AndroidView(
             factory = { context ->
                 PlayerView(context).apply {

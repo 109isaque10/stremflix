@@ -137,7 +137,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -149,7 +153,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.ClickableSurfaceDefaults
 import androidx.tv.material3.Surface
+import com.stremflix.ui.theme.NetflixRed
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun TvSideNav(
     navItems: List<NavItem>,
@@ -177,6 +183,9 @@ fun TvSideNav(
             .fillMaxHeight()
             .width(navWidth)
             .focusGroup()
+            .focusProperties { exit = { focusDirection ->
+                if (focusDirection == FocusDirection.Left) FocusRequester.Default else FocusRequester.Cancel
+            }}
             .background(
                 Brush.horizontalGradient(
                     colors = listOf(
@@ -230,45 +239,60 @@ private fun TvNavItem(
     Surface(
         onClick = onClick,
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = when {
-                isSelected && isNavExpanded -> Color.White.copy(alpha = 0.1f)
-                isSelected -> Color.White.copy(alpha = 0.05f) // Dimmer indicator when focus is on the main content
-                else -> Color.Transparent
-            },
-            focusedContainerColor = Color.White.copy(alpha = 0.25f),
-            pressedContainerColor = Color.White.copy(alpha = 0.15f),
+//            containerColor = when {
+//                isSelected && isNavExpanded -> Color.White.copy(alpha = 0.1f)
+//                isSelected -> Color.White.copy(alpha = 0.05f) // Dimmer indicator when focus is on the main content
+//                else -> Color.Transparent
+//            },
+            containerColor = Color.Transparent,
+            focusedContainerColor = Color.Transparent,
+            pressedContainerColor = Color.Transparent,
             contentColor = contentColor,
             focusedContentColor = Color.White
         ),
-        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(0.dp)),
         modifier = Modifier
             .fillMaxWidth()
             .onFocusChanged { isItemFocused = it.isFocused } // Updates focus on remote movement
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 14.dp, horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+                .padding(vertical = 12.dp, horizontal = 16.dp),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = ImageVector.vectorResource(item.iconResId),
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(24.dp)
-            )
-
-            AnimatedVisibility(visible = isNavExpanded) {
-                Row {
-                    Spacer(Modifier.width(16.dp))
-                    Text(
-                        text = stringResource(id = item.labelResId),
-                        color = contentColor,
-                        fontSize = 16.sp,
-                        fontWeight = if (isSelected || isItemFocused) FontWeight.Bold else FontWeight.Medium,
-                        maxLines = 1
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(contentAlignment = Alignment.BottomCenter) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(item.iconResId),
+                        contentDescription = null,
+                        tint = contentColor,
+                        modifier = Modifier.size(26.dp)
                     )
+                    // ✅ Netflix Red Bar indicator placed directly underneath the icon when selected
+                    if (isSelected) {
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 32.dp)
+                                .width(26.dp)
+                                .height(3.dp)
+                                .background(NetflixRed) // Netflix Red
+                        )
+                    }
+                }
+
+                AnimatedVisibility(visible = isNavExpanded) {
+                    Row {
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            text = stringResource(id = item.labelResId),
+                            color = contentColor,
+                            fontSize = 16.sp,
+                            fontWeight = if (isSelected || isItemFocused) FontWeight.Bold else FontWeight.Medium,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
         }

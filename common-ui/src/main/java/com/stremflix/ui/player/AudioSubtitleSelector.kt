@@ -92,6 +92,8 @@ fun AudioSubtitleSelectorMobile(
                             }
                             // add "Off" option for subtitles
                             item {
+                                val isSubtitleOff = subtitleTracks.isEmpty() || subtitleTracks.all { it.isSubtitleOff }
+
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -99,7 +101,7 @@ fun AudioSubtitleSelectorMobile(
                                         .padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    if (subtitleTracks.first().isSubtitleOff) {
+                                    if (isSubtitleOff) {
                                         Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_check_circle), contentDescription = "Selected", tint = Color.White)
                                         Spacer(Modifier.width(8.dp))
                                     } else {
@@ -176,7 +178,7 @@ fun AudioSubtitleSelectorTvDrawer(
                     }
                     // Off option
                     item {
-                        val offSelected = subtitleTracks.first().isSubtitleOff
+                        val offSelected = subtitleTracks.isEmpty() || subtitleTracks.all { it.isSubtitleOff }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()

@@ -63,7 +63,7 @@ fun ContentCard(
             .border(
                 width = if (isFocused) 2.dp else 0.dp,
                 color = if (isFocused) NetflixFocusBorder else Color.Transparent,
-                shape = RoundedCornerShape(6.dp)
+                shape = RoundedCornerShape(0.dp)
             )
             .background(NetflixSurfaceLight, RoundedCornerShape(6.dp))
             .focusRequester(focusRequester)
