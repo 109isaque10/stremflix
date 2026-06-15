@@ -139,9 +139,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -183,9 +180,6 @@ fun TvSideNav(
             .fillMaxHeight()
             .width(navWidth)
             .focusGroup()
-            .focusProperties { exit = { focusDirection ->
-                if (focusDirection == FocusDirection.Left) FocusRequester.Default else FocusRequester.Cancel
-            }}
             .background(
                 Brush.horizontalGradient(
                     colors = listOf(

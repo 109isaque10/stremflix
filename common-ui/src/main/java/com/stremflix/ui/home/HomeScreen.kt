@@ -7,12 +7,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -29,10 +27,8 @@ import com.stremflix.ui.components.LoadingSkeleton
 import com.stremflix.ui.details.StreamSelectionDialog
 import com.stremflix.ui.movies.MoviesViewModel
 import com.stremflix.ui.series.SeriesViewModel
-import com.stremflix.ui.theme.NetflixBlack
-import com.stremflix.ui.theme.NetflixRed
-import com.stremflix.ui.theme.NetflixTextPrimary
-import com.stremflix.ui.theme.NetflixTextSecondary
+import com.stremflix.ui.theme.*
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun HomeScreen(
@@ -75,6 +71,15 @@ fun HomeScreen(
     val showStreamDialog by homeViewModel.showStreamDialog.collectAsState()
     val streams by homeViewModel.streams.collectAsState()
 
+    val contentFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+
+    LaunchedEffect(unifiedState) {
+        if (unifiedState is HomeUiState.Success) {
+            kotlinx.coroutines.delay(150.milliseconds) // Allow list compilation matrix to settle
+            try { contentFocusRequester.requestFocus() } catch (e: Exception) {}
+        }
+    }
+
     // Observe the correct state based on the tab!
     val rows = when (filterType) {
         "movie" -> moviesViewModel.uiState.collectAsState().value.let { if (it is MoviesUiState.Success) it.rows else emptyList() }
@@ -83,22 +88,24 @@ fun HomeScreen(
     }
 
     if (showStreamDialog) {
-        StreamSelectionDialog(
-            streams = streams,
-            onDismiss = { homeViewModel.dismissStreamDialog() },
-            onStreamSelected = { stream ->
-                homeViewModel.onStreamSelected(stream)
-                // Get the current hero item (you'll need to track this in ViewModel)
-                // For now, navigate with placeholder values
-                if (stream != null) {
-                    // You need to store the selected item in ViewModel
-                    val item = homeViewModel.currentSelectedItem
-                    if (item != null) {
-                        onNavigateToPlayback(stream.url, item.title, item.synopsis, item.id, item.type.name.lowercase())
+        if(!isTvMode){
+            StreamSelectionDialog(
+                streams = streams,
+                onDismiss = { homeViewModel.dismissStreamDialog() },
+                onStreamSelected = { stream ->
+                    homeViewModel.onStreamSelected(stream)
+                    // Get the current hero item (you'll need to track this in ViewModel)
+                    // For now, navigate with placeholder values
+                    if (stream != null) {
+                        // You need to store the selected item in ViewModel
+                        val item = homeViewModel.currentSelectedItem
+                        if (item != null) {
+                            onNavigateToPlayback(stream.url, item.title, item.synopsis, item.id, item.type.name.lowercase())
+                        }
                     }
                 }
-            }
-        )
+            )
+        }
     }
 
     Scaffold(topBar = {
@@ -201,29 +208,29 @@ fun HomeScreen(
                         ) {
                             Text(
                                 text = "No content available",
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = StremFlixTypography.bodyLarge,
                                 color = NetflixTextSecondary
                             )
                         }
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                             // Hero section
-                            val firstRow = rows.getOrNull(4)
-                            if (firstRow != null && firstRow.items.isNotEmpty() && filterType == "home") {
+                            val heroRow = rows.firstOrNull { it.items.isNotEmpty() }
+                            if (heroRow != null && heroRow.items.isNotEmpty() && filterType == "home") {
                                 item {
                                     HeroCard(
-                                        item = firstRow.items.first(),
-                                        onPlayClick = { homeViewModel.onPlayClicked(null, firstRow.items.first()) },
+                                        item = heroRow.items.first(),
+                                        onPlayClick = { homeViewModel.onPlayClicked(null, heroRow.items.first()) },
                                         onMoreInfoClick = {
                                             onNavigateToDetails(
-                                                firstRow.items.first().title,
-                                                firstRow.items.first().synopsis,
-                                                firstRow.items.first().id,
-                                                firstRow.items.first().type.name.lowercase()
+                                                heroRow.items.first().title,
+                                                heroRow.items.first().synopsis,
+                                                heroRow.items.first().id,
+                                                heroRow.items.first().type.name.lowercase()
                                             )
                                         },
                                         isTv = isTvMode,
-                                        modifier = Modifier.fillParentMaxWidth()
+                                        modifier = Modifier.fillParentMaxWidth().focusRequester(contentFocusRequester)
                                     )
                                     Spacer(Modifier.height(24.dp))
                                 }
@@ -234,6 +241,7 @@ fun HomeScreen(
                                 items = unifiedState.rows,
                                 key = { it.title }
                             ) { rowData ->
+                                val isFirstRow = unifiedState.rows.firstOrNull()?.title == rowData.title
                                 ContentRow(
                                     title = rowData.title,
                                     items = rowData.items,
@@ -241,7 +249,10 @@ fun HomeScreen(
                                     isTvMode = isTvMode,
                                     onItemSelected = { item ->
                                         onNavigateToDetails(item.title, item.synopsis, item.id, item.type.name.lowercase())
-                                    }
+                                    },
+                                    modifier = if (isFirstRow && (heroRow == null || filterType != "home")) {
+                                        Modifier.focusRequester(contentFocusRequester)
+                                    } else Modifier
                                 )
                             }
 
