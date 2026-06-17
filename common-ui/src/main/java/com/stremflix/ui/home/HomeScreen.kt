@@ -231,7 +231,13 @@ fun HomeScreen(
                             )
                         }
                     } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                top = if (isTvMode) 16.dp else 0.dp,
+                                bottom = 100.dp
+                            )
+                        ) {
                             // Hero section
                             val heroRow = rows.firstOrNull { it.items.isNotEmpty() }
                             if (heroRow != null && heroRow.items.isNotEmpty() && filterType == "home") {
@@ -248,7 +254,10 @@ fun HomeScreen(
                                             )
                                         },
                                         isTv = isTvMode,
-                                        modifier = Modifier.fillParentMaxWidth().focusRequester(contentFocusRequester)
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = if (isTvMode) 24.dp else 0.dp)
+                                            .focusRequester(contentFocusRequester)
                                     )
                                     Spacer(Modifier.height(24.dp))
                                 }

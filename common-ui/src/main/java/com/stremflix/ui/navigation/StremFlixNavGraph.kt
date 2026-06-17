@@ -196,11 +196,23 @@ fun StremFlixNavGraph(
             EpisodesScreenRoute(
                 onBack = { navController.popBackStack() },
                 onEpisodeSelected = { episode ->
-                    // map selected episode to play back and navigate; use episode.streamUrl or call details VM to get stream
-                    // Assuming episode has a streamUrl or you need to call your play logic — here's an example route:
-                    // build stream playback route via handlePlayLogic in DetailsViewModel or call nav to PlaybackRoute if you already have stream URL.
-                    // For now just pop back:
-                    navController.navigate(AppRoute.PlaybackRoute(episode.streamUrl!!, episode.title, episode.synopsis, episode.seriesId, "series", false, episode.seasonNumber, episode.episodeNumber))
+                    val streamUrl = episode.streamUrl?.takeIf { it.isNotBlank() }
+                        ?: episode.videoUrl?.takeIf { it.isNotBlank() }
+
+                    if (streamUrl != null) {
+                        navController.navigate(
+                            AppRoute.PlaybackRoute(
+                                streamUrl = streamUrl,
+                                contentTitle = episode.title,
+                                contentSynopsis = episode.synopsis,
+                                contentId = episode.seriesId,
+                                type = "series",
+                                playFromBeggining = false,
+                                season = episode.seasonNumber,
+                                episode = episode.episodeNumber
+                            )
+                        )
+                    }
                 }
             )
         }

@@ -95,8 +95,8 @@ class DetailsViewModel @Inject constructor(
                     }
 
                     _selectedEpisode.value = determineUpNext(result.data, watchHistoryRepository, contentRepository)
-                    // Load episodes for season 1 initially
-                    loadEpisodesForSeason(result.data.id, 1)
+                    val seasonToLoad = _selectedEpisode.value?.seasonNumber ?: 1
+                    loadEpisodesForSeason(result.data.id, seasonToLoad)
                 }
 
                 _uiState.value = DetailsUiState.Success(result.data)
@@ -128,11 +128,18 @@ class DetailsViewModel @Inject constructor(
         // Don't navigate here - let the UI handle it via callback
     }
 
-    private suspend fun loadEpisodesForSeason(seriesId: String, seasonNumber: Int) {
+    private suspend fun loadEpisodesForSeason(
+        seriesId: String,
+        seasonNumber: Int,
+        updateSelectedEpisode: Boolean = false
+    ) {
         val result = contentRepository.getSeasonEpisodes(seriesId, seasonNumber)
         if (result is Result.Success) {
             _episodes.value = result.data
             _currentSeason.value = seasonNumber
+            if (updateSelectedEpisode) {
+                _selectedEpisode.value = result.data.firstOrNull()
+            }
         } else {
             // Show error state if needed
             _episodes.value = emptyList()
@@ -143,7 +150,7 @@ class DetailsViewModel @Inject constructor(
         viewModelScope.launch(dispatchers.io) {
             currentSelectedItem?.let { item ->
                 _episodes.value = emptyList()
-                loadEpisodesForSeason(item.id, seasonNumber)
+                loadEpisodesForSeason(item.id, seasonNumber, updateSelectedEpisode = true)
             }
         }
     }

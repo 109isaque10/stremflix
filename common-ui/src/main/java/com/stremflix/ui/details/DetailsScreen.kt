@@ -9,6 +9,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -330,6 +332,11 @@ fun DetailsContentTv(
     val isInList = produceState(false, item) {
         value = myListViewModel.isInMyList(item)
     }.value
+    val playFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(item.id) {
+        playFocusRequester.requestFocus()
+    }
 
     Box(
         modifier = Modifier
@@ -418,7 +425,8 @@ fun DetailsContentTv(
                 TvDetailsMenuButton(
                     text = stringResource(id = playId) + episodeText,
                     iconRes = R.drawable.ic_play,
-                    onClick = onPlayClick
+                    onClick = onPlayClick,
+                    modifier = Modifier.focusRequester(playFocusRequester)
                 )
 
                 // Action B: Play From Beginning (Visible if item possesses active track layout timeline history)
@@ -464,7 +472,8 @@ fun DetailsContentTv(
 private fun TvDetailsMenuButton(
     text: String,
     iconRes: Int,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var isFocused by remember { mutableStateOf(false) }
     androidx.tv.material3.Surface(
@@ -476,7 +485,7 @@ private fun TvDetailsMenuButton(
             focusedContentColor = Color.Black
         ),
         shape = androidx.tv.material3.ClickableSurfaceDefaults.shape(RoundedCornerShape(4.dp)),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(44.dp)
             .onFocusChanged { isFocused = it.isFocused }

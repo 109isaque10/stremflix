@@ -2,9 +2,19 @@ package com.stremflix.ui.details
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.matchParentSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,17 +22,24 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.tv.material3.ClickableSurfaceDefaults
+import androidx.tv.material3.Surface
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.stremflix.data.model.ContentItem
@@ -33,7 +50,6 @@ import com.stremflix.ui.theme.NetflixTextSecondary
 
 @Composable
 fun EpisodesScreenRoute(
-    // this wrapper is for NavGraph usage; you can call EpisodesScreenRoute() in nav graph
     viewModel: EpisodesViewModel = hiltViewModel(),
     onBack: () -> Unit,
     onEpisodeSelected: (Episode) -> Unit
@@ -43,16 +59,13 @@ fun EpisodesScreenRoute(
     val currentSeason = viewModel.currentSeason.collectAsState().value
     val episodes = viewModel.episodes.collectAsState().value
 
-    // If contentItem == null, you can show a loading placeholder
     if (item == null) {
-        // show loading or placeholder
-        CircularProgressIndicator()
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
         return
     }
 
-    // Reuse the UI you already built earlier (left column + right list). If you implemented EpisodeRow/EpisodesScreen UI in another file,
-    // call it here. For clarity, assume you have a composable `EpisodesScreenUi` that takes item, categories and modules.
-//    val categories = listOf("All Episodes" to episodes.size) // build real categories if you have them
     EpisodesScreen(
         item = item,
         seasons = seasons,
@@ -64,90 +77,93 @@ fun EpisodesScreenRoute(
     )
 }
 
-/**
- * Episodes exploration split-view:
- * left column: logo + badges + vertical category selector
- * right column: vertical list of content modules with thumbnail + text block
- *
- * Provide `categories` as list of Pair(label, count) for left selector.
- */
 @Composable
 fun EpisodesScreen(
     item: ContentItem,
     seasons: List<Int>,
     currentSeason: Int,
     onSeasonSelected: (Int) -> Unit,
-    modules: List<Episode>, // episodes or items to display on the right
+    modules: List<Episode>,
     onBack: () -> Unit,
     onEpisodeSelected: (Episode) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-//    var selectedCategoryIndex by remember { mutableIntStateOf(0) }
+    val seasonFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(item.id, currentSeason, seasons) {
+        if (seasons.isNotEmpty()) {
+            seasonFocusRequester.requestFocus()
+        }
+    }
 
     Row(modifier = modifier.fillMaxSize().background(NetflixBlack)) {
-        // Left column: dimmed artwork backdrop + metadata & category selector
-        Box(modifier = Modifier.width(420.dp).fillMaxHeight().padding(20.dp)) {
-            // Dimmed artwork as background
+        Box(modifier = Modifier.width(420.dp).fillMaxHeight().padding(24.dp)) {
             val art = item.backdropUrl ?: item.posterUrl
             if (!art.isNullOrBlank()) {
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(context).data(art).crossfade(true).build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.matchParentSize().alpha(0.28f)
+                    modifier = Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.25f))
                 )
             }
+
             Column(modifier = Modifier.fillMaxSize()) {
-                // Title logo
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(context).data(item.titleLogoUrl ?: item.title).crossfade(true).build(),
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.height(96.dp).padding(bottom = 12.dp)
+                    modifier = Modifier.height(88.dp).padding(bottom = 12.dp)
                 )
 
-                // performance metrics & maturity badge row (placeholder)
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
-                    Text(text = item.year?.toString() ?: "", color = NetflixTextSecondary)
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 16.dp)) {
+                    Text(text = item.year?.toString().orEmpty(), color = NetflixTextSecondary)
                     Spacer(Modifier.width(10.dp))
-                    Text(text = item.contentRating ?: "", color = NetflixTextSecondary, modifier = Modifier.background(Color(0xFF333333), RoundedCornerShape(2.dp)).padding(4.dp))
+                    Text(
+                        text = item.contentRating.orEmpty(),
+                        color = NetflixTextSecondary,
+                        modifier = Modifier
+                            .background(Color(0xFF333333), RoundedCornerShape(2.dp))
+                            .padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
                 }
 
-                Spacer(Modifier.height(12.dp))
-
-                // Category selector (vertical list)
-                LazyColumn(modifier = Modifier.weight(1f)) {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(seasons) { season ->
-//                        val isSelected = season == currentSeason
-                        var isFocused = season == currentSeason // For simplicity, using currentSeason as focused state. You can manage focus separately if needed.
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                                .then(if (isFocused) Modifier.border(3.dp, Color.White, RoundedCornerShape(0.dp)) else Modifier)
-                                .clickable { onSeasonSelected(season) }
-                                .focusable(true)
-                                .onFocusChanged { focusState -> isFocused = focusState.isFocused }
-                                .padding(12.dp)
-                        ) {
-                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = "Season $season", color = if (isFocused) Color.White else NetflixTextSecondary, modifier = Modifier.weight(1f))
-//                                Text(text = modules.num.toString(), color = if (isSelected) Color.White else NetflixTextSecondary)
-                            }
-                        }
+                        SeasonTab(
+                            season = season,
+                            episodeCount = if (season == currentSeason) modules.size else null,
+                            isSelected = season == currentSeason,
+                            modifier = if (season == currentSeason) {
+                                Modifier.focusRequester(seasonFocusRequester)
+                            } else {
+                                Modifier
+                            },
+                            onClick = { onSeasonSelected(season) }
+                        )
                     }
                 }
             }
         }
 
-        // Right column: scrollable modules list
-        Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-            Text(text = "Episodes", color = NetflixTextPrimary, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 12.dp))
+        Column(modifier = Modifier.fillMaxSize().padding(top = 24.dp, bottom = 24.dp, end = 24.dp)) {
+            Text(
+                text = "Episodes",
+                color = NetflixTextPrimary,
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(modules) { ep ->
-                    EpisodeRow(episode = ep, index = modules.indexOf(ep), onClick = { onEpisodeSelected(ep) })
+                items(
+                    items = modules,
+                    key = { episode -> "${episode.seriesId}-${episode.seasonNumber}-${episode.episodeNumber}" }
+                ) { episode ->
+                    EpisodeRow(
+                        episode = episode,
+                        onClick = { onEpisodeSelected(episode) }
+                    )
                 }
             }
         }
@@ -155,48 +171,152 @@ fun EpisodesScreen(
 }
 
 @Composable
-private fun EpisodeRow(episode: Episode, index: Int, onClick: () -> Unit) {
-    var isFocused = false
-    Row(modifier = Modifier
-        .fillMaxWidth()
-        .height(120.dp)
-        .clickable { onClick() }
-        .background(Color(0x11000000), RoundedCornerShape(0.dp))
-        .onFocusChanged { focusState -> isFocused = focusState.isFocused }
-        .then(if (isFocused) Modifier.border(3.dp, Color.White, RoundedCornerShape(0.dp)) else Modifier)
-        .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+private fun SeasonTab(
+    season: Int,
+    episodeCount: Int?,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val active = isFocused || isSelected
+
+    Surface(
+        onClick = onClick,
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color.Transparent,
+            focusedContainerColor = Color.Transparent,
+            pressedContainerColor = Color.Transparent,
+            contentColor = NetflixTextSecondary,
+            focusedContentColor = Color.White
+        ),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+        modifier = modifier
+            .fillMaxWidth()
+            .onFocusChanged { isFocused = it.isFocused }
+            .border(
+                width = if (active) 3.dp else 1.dp,
+                color = if (active) Color.White else Color.Transparent,
+                shape = RoundedCornerShape(8.dp)
+            )
     ) {
-        // Thumbnail with index watermark
-        Box(modifier = Modifier.width(180.dp).fillMaxHeight()) {
-            val thumb = episode.thumbnailUrl
-            if (!thumb.isNullOrBlank()) {
-                SubcomposeAsyncImage(
-                    model = thumb,
-                    contentDescription = episode.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.matchParentSize().clip(RoundedCornerShape(6.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black.copy(alpha = if (active) 0.72f else 0.35f), RoundedCornerShape(8.dp))
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Season $season",
+                color = if (active) Color.White else NetflixTextSecondary,
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(Modifier.weight(1f))
+
+            if (episodeCount != null) {
+                Text(
+                    text = "$episodeCount episodes",
+                    color = if (active) Color.White else NetflixTextSecondary,
+                    style = MaterialTheme.typography.bodyMedium
                 )
-            } else {
-                Box(modifier = Modifier.matchParentSize().background(Color.DarkGray).clip(RoundedCornerShape(6.dp)))
-            }
-
-            // Watermark index bottom-left
-            Box(modifier = Modifier.align(Alignment.BottomStart).padding(8.dp).background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp)).padding(6.dp)) {
-                Text(text = "#${index + 1}", color = Color.White, style = MaterialTheme.typography.labelSmall)
             }
         }
+    }
+}
 
-        Spacer(Modifier.width(12.dp))
+@Composable
+private fun EpisodeRow(
+    episode: Episode,
+    onClick: () -> Unit
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val active = isFocused
 
-        // Text block
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = episode.title ?: "Episode", color = Color.White, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(6.dp))
-            Text(text = episode.synopsis ?: "", color = NetflixTextSecondary, style = MaterialTheme.typography.bodySmall, maxLines = 3)
+    Surface(
+        onClick = onClick,
+        colors = ClickableSurfaceDefaults.colors(
+            containerColor = Color.Transparent,
+            focusedContainerColor = Color.Transparent,
+            pressedContainerColor = Color.Transparent,
+            contentColor = Color.White,
+            focusedContentColor = Color.White
+        ),
+        shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(8.dp)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged { isFocused = it.isFocused }
+            .border(
+                width = if (active) 3.dp else 1.dp,
+                color = if (active) Color.White else Color.Transparent,
+                shape = RoundedCornerShape(8.dp)
+            )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black.copy(alpha = if (active) 0.72f else 0.45f), RoundedCornerShape(8.dp))
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(modifier = Modifier.size(220.dp, 124.dp)) {
+                val thumb = episode.thumbnailUrl
+                if (!thumb.isNullOrBlank()) {
+                    SubcomposeAsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current).data(thumb).crossfade(true).build(),
+                        contentDescription = episode.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.matchParentSize().background(Color(0xFF111111)).padding(0.dp)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier.matchParentSize().background(Color(0xFF111111)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "No image", color = NetflixTextSecondary)
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(8.dp)
+                        .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "S${episode.seasonNumber}:E${episode.episodeNumber}",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = episode.title,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = episode.synopsis.orEmpty(),
+                    color = NetflixTextSecondary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 3
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Text(
+                text = "${episode.runtime ?: 0}m",
+                color = NetflixTextSecondary,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
-
-        // Duration
-        Text(text = "${episode.runtime ?: 0}m", color = NetflixTextSecondary)
     }
 }

@@ -30,20 +30,26 @@ suspend fun handlePlayLogic(
     if (item.type == ContentType.MOVIE) {
         fetchStreams(item, null, streamRepository, preferencesDataSource, streamsFlow, showDialogFlow)
     } else {
-        // Use provided episode or determine the "Up Next" episode
-        val episodeToPlay = specificEpisode
+        val episodeToPlay = when {
+            specificEpisode != null -> specificEpisode
+            playFromBeggining -> (contentRepository.getSeasonEpisodes(item.id, 1) as? Result.Success)?.data?.firstOrNull()
+            else -> determineUpNext(item, watchHistoryRepository, contentRepository)
+        }
 
-        episodeToPlay.let { ep ->
-            if (ep != null && ep.watchProgress > 0f) {
-                watchHistoryRepository.updateWatchProgress(item.id, ep.seasonNumber, ep.episodeNumber, ep.watchProgress)
-            }
-            fetchStreams(item, ep, streamRepository, preferencesDataSource, streamsFlow, showDialogFlow)
-        } ?: run {
-//            showDialogFlow.value = false // Close if no episode exists
+        if (episodeToPlay != null && episodeToPlay.watchProgress > 0f) {
+            watchHistoryRepository.updateWatchProgress(
+                item.id,
+                episodeToPlay.seasonNumber,
+                episodeToPlay.episodeNumber,
+                episodeToPlay.watchProgress
+            )
+        }
+
+        if (episodeToPlay != null) {
+            fetchStreams(item, episodeToPlay, streamRepository, preferencesDataSource, streamsFlow, showDialogFlow)
+        } else {
             streamsFlow.value = listOf(
-                Stream(
-                    "No Episode Found", "", null, "", null, null, null
-                )
+                Stream("No Episode Found", "", null, "", null, null, null)
             )
         }
     }
@@ -54,8 +60,8 @@ suspend fun determineUpNext(
     historyRepo: WatchHistoryRepository,
     contentRepo: ContentRepository
 ): Episode? {
-    val lastWatched = historyRepo.getLastWatchedEpisode(item.id) ?:
-    return (contentRepo.getSeasonEpisodes(item.id, 1) as? Result.Success)?.data?.firstOrNull()
+    val lastWatched = historyRepo.getLastWatchedEpisode(item.id)
+        ?: return (contentRepo.getSeasonEpisodes(item.id, 1) as? Result.Success)?.data?.firstOrNull()
 
     val currentSeasonRes = contentRepo.getSeasonEpisodes(item.id, lastWatched.seasonNumber)
     val episodes = (currentSeasonRes as? Result.Success)?.data ?: emptyList()
@@ -63,12 +69,14 @@ suspend fun determineUpNext(
     return if (lastWatched.isInProgress) {
         // Resume incomplete episode
         episodes.find { it.episodeNumber == lastWatched.episodeNumber }
+            ?: (contentRepo.getSeasonEpisodes(item.id, lastWatched.seasonNumber + 1) as? Result.Success)
+                ?.data?.firstOrNull()
     } else {
         // Suggest next episode
         episodes.find { it.episodeNumber == lastWatched.episodeNumber + 1 }
             ?: (contentRepo.getSeasonEpisodes(item.id, lastWatched.seasonNumber + 1) as? Result.Success)
                 ?.data?.firstOrNull()
-    }
+    } ?: (contentRepo.getSeasonEpisodes(item.id, 1) as? Result.Success)?.data?.firstOrNull()
 }
 
 private suspend fun fetchStreams(
