@@ -41,7 +41,7 @@ fun PlaybackScreen(
     contentSynopsis: String?,
     contentId: String,
     contentType: String,
-    playFromBeggining: Boolean,
+    playFromBeginning: Boolean,
     isTvMode: Boolean,
     season: Int? = null,
     episode: Int? = null,
@@ -111,7 +111,7 @@ fun PlaybackScreen(
             streamUrl = streamUrl,
             contentId = contentId,
             contentType = if (contentType == "movie") ContentType.MOVIE else ContentType.SERIES,
-            playFromBeggining = playFromBeggining,
+            playFromBeginning = playFromBeginning,
             season = season,
             episode = episode
         )

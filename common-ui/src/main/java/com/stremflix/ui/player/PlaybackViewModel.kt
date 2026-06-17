@@ -164,7 +164,7 @@ class PlaybackViewModel @Inject constructor(
         streamUrl: String,
         contentId: String,
         contentType: ContentType,
-        playFromBeggining: Boolean = false,
+        playFromBeginning: Boolean = false,
         season: Int? = null,
         episode: Int? = null
     ) {
@@ -182,7 +182,7 @@ class PlaybackViewModel @Inject constructor(
             val mediaItem = MediaItem.fromUri(streamUrl)
             player.setMediaItem(mediaItem)
             player.prepare()
-            if(!playFromBeggining){
+            if(!playFromBeginning){
                 currentContentItem?.let { player.seekTo((it.watchProgress * player.duration.toFloat()).toLong()) }
             }
             loadDefaultSelection()

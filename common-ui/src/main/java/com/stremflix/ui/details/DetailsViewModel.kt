@@ -41,6 +41,10 @@ class DetailsViewModel @Inject constructor(
     private val dispatchers: AppDispatchers
 ) : ViewModel() {
 
+    private companion object {
+        const val DEFAULT_SEASON = 1
+    }
+
     private val args: AppRoute.Details = savedStateHandle.toRoute<AppRoute.Details>()
     val contentId = args.id
     val contentTitle = args.contentTitle
@@ -69,8 +73,8 @@ class DetailsViewModel @Inject constructor(
     private val _selectedEpisode = MutableStateFlow<Episode?>(null)
     var selectedEpisode: StateFlow<Episode?> = _selectedEpisode.asStateFlow()
 
-    private val _playFromBeggining = MutableStateFlow(false)
-    var playFromBeggining: StateFlow<Boolean> = _playFromBeggining.asStateFlow()
+    private val _playFromBeginning = MutableStateFlow(false)
+    var playFromBeginning: StateFlow<Boolean> = _playFromBeginning.asStateFlow()
 
     init {
         loadDetails()
@@ -95,8 +99,11 @@ class DetailsViewModel @Inject constructor(
                     }
 
                     _selectedEpisode.value = determineUpNext(result.data, watchHistoryRepository, contentRepository)
-                    val seasonToLoad = _selectedEpisode.value?.seasonNumber ?: 1
+                    val seasonToLoad = _selectedEpisode.value?.seasonNumber?.takeIf { it in _seasons.value } ?: DEFAULT_SEASON
                     loadEpisodesForSeason(result.data.id, seasonToLoad)
+                    if (_episodes.value.isEmpty() && seasonToLoad != DEFAULT_SEASON) {
+                        loadEpisodesForSeason(result.data.id, DEFAULT_SEASON, updateSelectedEpisode = true)
+                    }
                 }
 
                 _uiState.value = DetailsUiState.Success(result.data)
@@ -112,7 +119,7 @@ class DetailsViewModel @Inject constructor(
             handlePlayLogic(
                 item = item,
                 specificEpisode = episode,
-                playFromBeggining = playFromBeggining.value,
+                playFromBeginning = playFromBeginning.value,
                 contentRepository = contentRepository,
                 streamRepository = streamRepository,
                 watchHistoryRepository = watchHistoryRepository,

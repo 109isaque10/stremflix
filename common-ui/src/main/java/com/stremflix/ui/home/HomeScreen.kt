@@ -255,7 +255,7 @@ fun HomeScreen(
                                         },
                                         isTv = isTvMode,
                                         modifier = Modifier
-                                            .fillMaxWidth()
+                                            .fillParentMaxWidth()
                                             .padding(horizontal = if (isTvMode) 24.dp else 0.dp)
                                             .focusRequester(contentFocusRequester)
                                     )

@@ -48,6 +48,10 @@ import com.stremflix.ui.theme.NetflixBlack
 import com.stremflix.ui.theme.NetflixTextPrimary
 import com.stremflix.ui.theme.NetflixTextSecondary
 
+private const val BACKDROP_OVERLAY_ALPHA = 0.25f
+private const val ACTIVE_ROW_ALPHA = 0.72f
+private const val INACTIVE_ROW_ALPHA = 0.35f
+
 @Composable
 fun EpisodesScreenRoute(
     viewModel: EpisodesViewModel = hiltViewModel(),
@@ -91,7 +95,7 @@ fun EpisodesScreen(
     val context = LocalContext.current
     val seasonFocusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(item.id, currentSeason, seasons) {
+    LaunchedEffect(item.id) {
         if (seasons.isNotEmpty()) {
             seasonFocusRequester.requestFocus()
         }
@@ -105,8 +109,9 @@ fun EpisodesScreen(
                     model = ImageRequest.Builder(context).data(art).crossfade(true).build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.25f))
+                    modifier = Modifier.matchParentSize()
                 )
+                Box(modifier = Modifier.matchParentSize().background(Color.Black.copy(alpha = BACKDROP_OVERLAY_ALPHA)))
             }
 
             Column(modifier = Modifier.fillMaxSize()) {
@@ -203,7 +208,7 @@ private fun SeasonTab(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black.copy(alpha = if (active) 0.72f else 0.35f), RoundedCornerShape(8.dp))
+                .background(Color.Black.copy(alpha = if (active) ACTIVE_ROW_ALPHA else INACTIVE_ROW_ALPHA), RoundedCornerShape(8.dp))
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -256,7 +261,7 @@ private fun EpisodeRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black.copy(alpha = if (active) 0.72f else 0.45f), RoundedCornerShape(8.dp))
+                .background(Color.Black.copy(alpha = if (active) ACTIVE_ROW_ALPHA else INACTIVE_ROW_ALPHA), RoundedCornerShape(8.dp))
                 .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -286,7 +291,7 @@ private fun EpisodeRow(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "S${episode.seasonNumber}:E${episode.episodeNumber}",
+                        text = "S${episode.seasonNumber}: E${episode.episodeNumber}",
                         color = Color.White,
                         style = MaterialTheme.typography.labelMedium
                     )

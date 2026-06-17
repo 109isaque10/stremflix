@@ -61,7 +61,7 @@ fun DetailsScreen(
     val currentSeason by viewModel.currentSeason.collectAsState()
     val episodes by viewModel.episodes.collectAsState()
     val selectedEpisode by viewModel.selectedEpisode.collectAsState()
-    val playFromBeggining by viewModel.playFromBeggining.collectAsState()
+    val playFromBeginning by viewModel.playFromBeginning.collectAsState()
 
     if (showStreamDialog) {
         if(!isTvMode) {
@@ -77,7 +77,7 @@ fun DetailsScreen(
                         viewModel.contentSynopsis,
                         viewModel.contentId,
                         viewModel.contentType,
-                        playFromBeggining
+                        playFromBeginning
                     )
                 }
             )
@@ -94,7 +94,7 @@ fun DetailsScreen(
                         viewModel.contentSynopsis,
                         viewModel.contentId,
                         viewModel.contentType,
-                        playFromBeggining
+                        playFromBeginning
                     )
                 }
             )

@@ -89,7 +89,7 @@ class HomeViewModel @Inject constructor(
                 watchHistoryRepository = watchHistoryRepository,
                 preferencesDataSource = preferencesDataSource,
                 streamsFlow = _streams,
-                playFromBeggining = false,
+                playFromBeginning = false,
                 showDialogFlow = _showStreamDialog
             )
         }

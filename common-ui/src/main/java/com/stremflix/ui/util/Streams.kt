@@ -12,10 +12,12 @@ import com.stremflix.data.repository.WatchHistoryRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 
+private const val FIRST_SEASON = 1
+
 suspend fun handlePlayLogic(
     item: ContentItem,
     specificEpisode: Episode?,
-    playFromBeggining: Boolean,
+    playFromBeginning: Boolean,
     contentRepository: ContentRepository,
     streamRepository: StreamRepository,
     watchHistoryRepository: WatchHistoryRepository,
@@ -32,7 +34,7 @@ suspend fun handlePlayLogic(
     } else {
         val episodeToPlay = when {
             specificEpisode != null -> specificEpisode
-            playFromBeggining -> (contentRepository.getSeasonEpisodes(item.id, 1) as? Result.Success)?.data?.firstOrNull()
+            playFromBeginning -> findFirstPlayableEpisode(contentRepository, item)
             else -> determineUpNext(item, watchHistoryRepository, contentRepository)
         }
 
@@ -66,17 +68,49 @@ suspend fun determineUpNext(
     val currentSeasonRes = contentRepo.getSeasonEpisodes(item.id, lastWatched.seasonNumber)
     val episodes = (currentSeasonRes as? Result.Success)?.data ?: emptyList()
 
-    return if (lastWatched.isInProgress) {
-        // Resume incomplete episode
-        episodes.find { it.episodeNumber == lastWatched.episodeNumber }
-            ?: (contentRepo.getSeasonEpisodes(item.id, lastWatched.seasonNumber + 1) as? Result.Success)
-                ?.data?.firstOrNull()
+    val targetEpisodeNumber = if (lastWatched.isInProgress) {
+        lastWatched.episodeNumber
     } else {
-        // Suggest next episode
-        episodes.find { it.episodeNumber == lastWatched.episodeNumber + 1 }
-            ?: (contentRepo.getSeasonEpisodes(item.id, lastWatched.seasonNumber + 1) as? Result.Success)
-                ?.data?.firstOrNull()
-    } ?: (contentRepo.getSeasonEpisodes(item.id, 1) as? Result.Success)?.data?.firstOrNull()
+        lastWatched.episodeNumber + 1
+    }
+
+    return episodes.find { it.episodeNumber == targetEpisodeNumber }
+        ?: firstAvailableEpisode(contentRepo, item.id, lastWatched.seasonNumber + 1, FIRST_SEASON)
+}
+
+private suspend fun firstAvailableEpisode(
+    contentRepo: ContentRepository,
+    itemId: String,
+    primarySeason: Int,
+    fallbackSeason: Int
+): Episode? {
+    for (seasonNumber in listOf(primarySeason, fallbackSeason)) {
+        val result = contentRepo.getSeasonEpisodes(itemId, seasonNumber)
+        val episode = (result as? Result.Success)?.data?.firstOrNull()
+        if (episode != null) {
+            return episode
+        }
+    }
+
+    return null
+}
+
+/**
+ * Finds the earliest available episode for a series by scanning its seasons in order.
+ */
+private suspend fun findFirstPlayableEpisode(
+    contentRepo: ContentRepository,
+    item: ContentItem
+): Episode? {
+    val maxSeason = item.numberOfSeasons?.takeIf { it > 0 } ?: FIRST_SEASON
+    for (seasonNumber in FIRST_SEASON..maxSeason) {
+        val result = contentRepo.getSeasonEpisodes(item.id, seasonNumber)
+        val episode = (result as? Result.Success)?.data?.firstOrNull()
+        if (episode != null) {
+            return episode
+        }
+    }
+    return null
 }
 
 private suspend fun fetchStreams(

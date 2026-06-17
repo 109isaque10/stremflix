@@ -1,8 +1,10 @@
 package com.stremflix.ui.navigation
 
 import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -169,7 +171,7 @@ fun StremFlixNavGraph(
                 contentId = detailsRoute.id,
                 contentType = detailsRoute.type,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToPlayback = { streamUrl, contentTitle, contentSynopsis, contentId, type, playFromBeggining ->
+                onNavigateToPlayback = { streamUrl, contentTitle, contentSynopsis, contentId, type, playFromBeginning ->
                     // Navigate to PlaybackRoute
                     navController.navigate(
                         AppRoute.PlaybackRoute(
@@ -178,7 +180,7 @@ fun StremFlixNavGraph(
                             contentSynopsis = contentSynopsis,
                             contentId = contentId,
                             type = if (type == ContentType.MOVIE) "movie" else "series",
-                            playFromBeggining = playFromBeggining
+                            playFromBeginning = playFromBeginning
                         )
                     )
                 },
@@ -192,6 +194,7 @@ fun StremFlixNavGraph(
 
         composable<AppRoute.Episodes> { backStackEntry ->
             val route = backStackEntry.toRoute<AppRoute.Episodes>()
+            val context = LocalContext.current
             // route.contentId and route.season are available via saved state inside EpisodesViewModel
             EpisodesScreenRoute(
                 onBack = { navController.popBackStack() },
@@ -207,11 +210,13 @@ fun StremFlixNavGraph(
                                 contentSynopsis = episode.synopsis,
                                 contentId = episode.seriesId,
                                 type = "series",
-                                playFromBeggining = false,
+                                playFromBeginning = false,
                                 season = episode.seasonNumber,
                                 episode = episode.episodeNumber
                             )
                         )
+                    } else {
+                        Toast.makeText(context, "Playback unavailable for this episode.", Toast.LENGTH_SHORT).show()
                     }
                 }
             )
@@ -236,7 +241,7 @@ fun StremFlixNavGraph(
                 contentType = route.type,
                 season = route.season,
                 episode = route.episode,
-                playFromBeggining = route.playFromBeggining,
+                playFromBeginning = route.playFromBeginning,
                 isTvMode = isTvMode,
                 navController = navController
             )

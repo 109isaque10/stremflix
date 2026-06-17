@@ -56,7 +56,7 @@ sealed class AppRoute {
         val contentSynopsis: String?,
         val contentId: String,
         val type: String,
-        val playFromBeggining: Boolean = false,
+        val playFromBeginning: Boolean = false,
         val season: Int? = null,
         val episode: Int? = null
     ) : AppRoute()
