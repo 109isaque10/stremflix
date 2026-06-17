@@ -33,6 +33,7 @@ import com.stremflix.ui.R
 import com.stremflix.ui.components.MatchBadge
 import com.stremflix.ui.components.VerticalFadeOverlay
 import com.stremflix.ui.mylist.MyListViewModel
+import com.stremflix.ui.player.TvQualitySelector
 import com.stremflix.ui.theme.NetflixBlack
 import com.stremflix.ui.theme.NetflixTextPrimary
 import com.stremflix.ui.theme.NetflixTextSecondary
@@ -61,15 +62,41 @@ fun DetailsScreen(
     val playFromBeggining by viewModel.playFromBeggining.collectAsState()
 
     if (showStreamDialog) {
-        StreamSelectionDialog(
-            streams = streams,
-            isLoading = streams.isEmpty() && showStreamDialog,
-            onDismiss = { viewModel.onStreamSelected(Stream("","", null, null, null, null, null)) },
-            onStreamSelected = { stream ->
-                viewModel.onStreamSelected(stream)
-                onNavigateToPlayback(stream.url, viewModel.contentTitle, viewModel.contentSynopsis, viewModel.contentId, viewModel.contentType, playFromBeggining)
-            }
-        )
+        if(!isTvMode) {
+            StreamSelectionDialog(
+                streams = streams,
+                isLoading = streams.isEmpty() && showStreamDialog,
+                onDismiss = { viewModel.onStreamSelected(Stream("", "", null, null, null, null, null)) },
+                onStreamSelected = { stream ->
+                    viewModel.onStreamSelected(stream)
+                    onNavigateToPlayback(
+                        stream.url,
+                        viewModel.contentTitle,
+                        viewModel.contentSynopsis,
+                        viewModel.contentId,
+                        viewModel.contentType,
+                        playFromBeggining
+                    )
+                }
+            )
+        } else {
+            TvQualitySelector(
+                streams = streams,
+                isLoading = streams.isEmpty() && showStreamDialog,
+                onDismiss = { viewModel.onStreamSelected(Stream("", "", null, null, null, null, null)) },
+                onStreamSelected = { stream ->
+                    viewModel.onStreamSelected(stream)
+                    onNavigateToPlayback(
+                        stream.url,
+                        viewModel.contentTitle,
+                        viewModel.contentSynopsis,
+                        viewModel.contentId,
+                        viewModel.contentType,
+                        playFromBeggining
+                    )
+                }
+            )
+        }
     }
 
     Box(

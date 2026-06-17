@@ -26,6 +26,7 @@ import com.stremflix.ui.components.GenreCard
 import com.stremflix.ui.components.LoadingSkeleton
 import com.stremflix.ui.details.StreamSelectionDialog
 import com.stremflix.ui.movies.MoviesViewModel
+import com.stremflix.ui.player.TvQualitySelector
 import com.stremflix.ui.series.SeriesViewModel
 import com.stremflix.ui.theme.*
 import kotlin.time.Duration.Companion.milliseconds
@@ -90,6 +91,23 @@ fun HomeScreen(
     if (showStreamDialog) {
         if(!isTvMode){
             StreamSelectionDialog(
+                streams = streams,
+                onDismiss = { homeViewModel.dismissStreamDialog() },
+                onStreamSelected = { stream ->
+                    homeViewModel.onStreamSelected(stream)
+                    // Get the current hero item (you'll need to track this in ViewModel)
+                    // For now, navigate with placeholder values
+                    if (stream != null) {
+                        // You need to store the selected item in ViewModel
+                        val item = homeViewModel.currentSelectedItem
+                        if (item != null) {
+                            onNavigateToPlayback(stream.url, item.title, item.synopsis, item.id, item.type.name.lowercase())
+                        }
+                    }
+                }
+            )
+        } else {
+            TvQualitySelector(
                 streams = streams,
                 onDismiss = { homeViewModel.dismissStreamDialog() },
                 onStreamSelected = { stream ->
